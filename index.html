@@ -1,0 +1,1967 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Make page-turning flipbooks, ebooks and guides with an embed and a PDF.">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Flipbook Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Figtree:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;600&family=Domine:wght@500;700&family=Nunito+Sans:wght@400;600;700;800&family=Libre+Baskerville:wght@400;700&family=Source+Sans+3:wght@400;600;700;800&family=Bricolage+Grotesque:wght@600;700;800&family=Literata:wght@400;600;700&display=swap">
+<style>
+/* Layout: a light-table workspace. Library is a shelf of cover thumbnails; the editor is outline | writing column | live pages. */
+:root{
+  --bg:#E8EBEF; --panel:#FFFFFF; --sunk:#F3F5F8; --ink:#172133; --muted:#586374; --line:#D3D9E1;
+  --brand:#17365F; --on-brand:#FFFFFF; --accent:#D7772B; --accent-ink:#8A4512; --ok:#2E7D55; --danger:#B23A2E; --focus:#2F6FD1;
+  --display:"Fraunces", Georgia, serif; --body:"Figtree", "Segoe UI", Arial, sans-serif; --mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r:10px; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11151B; --panel:#1A2029; --sunk:#151A22; --ink:#E6EAF0; --muted:#9BA5B4; --line:#2C3543;
+    --brand:#9DB9E6; --on-brand:#0E1724; --accent:#E8995A; --accent-ink:#F2B57F; --ok:#6CC895; --danger:#F08C80; --focus:#8DB3F2; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11151B; --panel:#1A2029; --sunk:#151A22; --ink:#E6EAF0; --muted:#9BA5B4; --line:#2C3543;
+  --brand:#9DB9E6; --on-brand:#0E1724; --accent:#E8995A; --accent-ink:#F2B57F; --ok:#6CC895; --danger:#F08C80; --focus:#8DB3F2; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--panel)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--panel);border-bottom:1px solid var(--line)}
+.top-in{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.mark{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:-.01em;color:var(--ink);background:none;border:0;padding:4px 2px;cursor:pointer;white-space:nowrap}
+.glyph{position:relative;width:22px;height:28px;border-radius:3px;background:var(--brand);flex:none;overflow:hidden}
+.glyph::after{content:"";position:absolute;right:0;bottom:0;width:11px;height:11px;background:linear-gradient(135deg,var(--brand) 50%,var(--accent) 50%)}
+.crumb{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
+.crumb .sep{color:var(--muted)}
+.crumb input{min-width:0;flex:1;max-width:420px;border:1px solid transparent;background:transparent;border-radius:7px;padding:6px 8px;font-weight:700;font-size:15.5px}
+.crumb input:hover{border-color:var(--line)}
+.crumb input:focus{border-color:var(--focus);background:var(--sunk);outline:none}
+.top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.saved{font-size:12.5px;color:var(--muted);min-width:70px;text-align:right}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:8px;padding:9px 14px;font-weight:700;font-size:14px;line-height:1.2;cursor:pointer;border:1px solid transparent;white-space:nowrap}
+.btn-primary{background:var(--brand);color:var(--on-brand)}
+.btn-primary:hover{filter:brightness(1.1)}
+.btn-accent{background:var(--accent);color:#1B1006}
+.btn-accent:hover{filter:brightness(1.06)}
+.btn-line{background:var(--panel);border-color:var(--line);color:var(--ink)}
+.btn-line:hover{border-color:var(--muted)}
+.btn-ghost{background:transparent;color:var(--ink)}
+.btn-ghost:hover{background:var(--sunk)}
+.btn-danger{background:transparent;color:var(--danger);border-color:color-mix(in srgb,var(--danger) 40%,transparent)}
+.btn-sm{padding:6px 10px;font-size:13px}
+.btn[disabled]{opacity:.5;cursor:default}
+
+.wrap{max-width:1500px;margin:0 auto;padding-block:24px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* library */
+.lib-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px}
+.lib-head h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(28px,4vw,40px);line-height:1.1;letter-spacing:-.015em;text-wrap:balance}
+.lib-head p{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.lib-actions{display:flex;gap:8px;flex-wrap:wrap}
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:26px 22px}
+.bk{display:flex;flex-direction:column;gap:10px;min-width:0}
+.bk-cover{position:relative;display:block;padding:0;border:0;background:none;cursor:pointer;border-radius:4px;box-shadow:0 1px 0 rgba(0,0,0,.04),0 10px 24px rgba(16,24,40,.16);transition:transform .2s ease, box-shadow .2s ease;overflow:hidden}
+.bk-cover:hover{transform:translateY(-3px);box-shadow:0 14px 30px rgba(16,24,40,.22)}
+.bk-cover::after{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:linear-gradient(90deg,rgba(0,0,0,.18),transparent)}
+.bk-meta{display:flex;flex-direction:column;gap:2px;min-width:0}
+.bk-title{font-weight:800;font-size:15px;line-height:1.3;overflow-wrap:anywhere}
+.bk-sub{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.bk-tools{display:flex;gap:4px;flex-wrap:wrap}
+.empty-shelf{border:2px dashed var(--line);border-radius:var(--r);padding:36px 20px;text-align:center;color:var(--muted);grid-column:1/-1}
+.thumb{position:relative;overflow:hidden;background:var(--panel)}
+.thumb > .fbe{position:absolute;left:0;top:0}
+.storage-note{margin:0 0 18px;padding:12px 14px;border-radius:var(--r);background:color-mix(in srgb,var(--accent) 16%,var(--panel));border:1px solid color-mix(in srgb,var(--accent) 40%,transparent);font-size:14px}
+
+/* editor */
+.ed{display:grid;grid-template-columns:270px minmax(0,1fr) 330px;gap:20px;align-items:start}
+@media (max-width:1240px){.ed{grid-template-columns:250px minmax(0,1fr)}.pv{grid-column:1/-1}}
+@media (max-width:820px){.ed{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
+.side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px);display:flex;flex-direction:column;gap:14px;max-height:calc(100vh - 96px);overflow:auto;padding:14px}
+@media (max-width:820px){.side{position:static;max-height:none}}
+.side h2,.col h2,.pv h2{margin:0;font-size:11.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.outline{display:flex;flex-direction:column;gap:2px;margin:0;padding:0;list-style:none}
+.ol-item{display:flex;align-items:center;gap:6px;border-radius:8px}
+.ol-item > button.go{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;text-align:left;background:none;border:0;border-radius:8px;padding:8px 10px;cursor:pointer;color:var(--ink);font-weight:600;font-size:14.5px}
+.ol-item > button.go:hover{background:var(--sunk)}
+.ol-item.on > button.go{background:color-mix(in srgb,var(--brand) 14%,var(--panel));color:var(--ink);font-weight:800}
+.ol-item .num{font-family:var(--mono);font-size:11.5px;color:var(--muted);flex:none;width:20px}
+.ol-item .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ol-item .pgs{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--muted);flex:none}
+.mini{display:flex;gap:2px}
+.mini button{width:26px;height:26px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;line-height:1}
+.mini button:hover{border-color:var(--line);color:var(--ink)}
+.mini button[disabled]{opacity:.3;cursor:default}
+.mini .btn{width:auto;height:auto;padding:4px 8px;font-size:12.5px;color:var(--ink)}
+.ol-sub{font-size:11.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:10px 10px 2px}
+
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.sec-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px}
+.sec-head .k{font-family:var(--mono);font-size:12px;color:var(--accent-ink);letter-spacing:.06em}
+.sec-head h1{margin:2px 0 0;font-family:var(--display);font-weight:700;font-size:28px;line-height:1.15;text-wrap:balance}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.f{display:flex;flex-direction:column;gap:5px;min-width:0;font-size:13px;font-weight:700;color:var(--muted)}
+.f .hint{font-weight:500;font-size:12.5px}
+.f input[type=text],.f input[type=url],.f textarea,.f select{width:100%;min-width:0;background:var(--sunk);border:1px solid var(--line);border-radius:7px;padding:9px 11px;font-size:15px;font-weight:500;color:var(--ink);line-height:1.5}
+.f textarea{resize:vertical;min-height:70px}
+.f textarea.big{min-height:130px;font-size:15.5px;line-height:1.6}
+.f input:focus,.f textarea:focus,.f select:focus{outline:2px solid var(--focus);outline-offset:0;border-color:transparent}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.check{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer}
+.check input{width:18px;height:18px;accent-color:var(--brand)}
+.help{margin:0;font-size:13px;color:var(--muted)}
+.help code{font-family:var(--mono);font-size:12px;background:var(--sunk);padding:1px 5px;border-radius:4px}
+
+/* blocks */
+.blocks{display:flex;flex-direction:column;gap:12px}
+.blk{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.blk-top{display:flex;align-items:center;gap:8px}
+.blk-type{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);margin-right:auto}
+.blk.drop{outline:2px dashed var(--focus)}
+.adder{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:12px;border:1px dashed var(--line);border-radius:var(--r);background:var(--sunk)}
+.adder .lab{font-size:13px;font-weight:700;color:var(--muted);margin-right:4px}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 11px;font-size:13px;font-weight:700;cursor:pointer;color:var(--ink)}
+.chip:hover{border-color:var(--brand)}
+.cards-list{display:flex;flex-direction:column;gap:10px}
+.fc-ed{border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px;background:var(--sunk)}
+.fc-ed .f input,.fc-ed .f textarea{background:var(--panel)}
+.fc-ed-top{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800}
+.imgbox{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.imgbox img{width:120px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--line);background:var(--sunk)}
+.swatches{display:flex;flex-wrap:wrap;gap:8px}
+.sw{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 12px 5px 6px;cursor:pointer;font-size:13px;font-weight:700;color:var(--ink)}
+.sw[aria-pressed="true"]{border-color:var(--brand);box-shadow:0 0 0 2px color-mix(in srgb,var(--brand) 35%,transparent)}
+.sw i{width:22px;height:22px;border-radius:50%;flex:none;display:inline-block;border:1px solid rgba(0,0,0,.12)}
+.colors{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
+.colors label{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--muted)}
+.colors input[type=color]{width:40px;height:32px;border:1px solid var(--line);border-radius:7px;padding:2px;background:var(--panel);cursor:pointer}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--panel);padding:8px 12px;font-size:13.5px;font-weight:700;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--brand);color:var(--on-brand)}
+
+/* live pages */
+.pv{position:sticky;top:calc(env(safe-area-inset-top,0px) + 76px);padding:14px;display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 96px);overflow:auto}
+@media (max-width:1240px){.pv{position:static;max-height:none}}
+.pv-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pv-total{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.pv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px}
+.pv-pg{display:flex;flex-direction:column;gap:5px;align-items:center;background:none;border:0;padding:0;cursor:pointer;color:var(--muted);font-family:var(--mono);font-size:11.5px}
+.pv-pg .thumb{box-shadow:0 4px 14px rgba(16,24,40,.16);border-radius:2px}
+.pv-pg:hover .thumb{box-shadow:0 0 0 2px var(--brand),0 6px 18px rgba(16,24,40,.2)}
+.pv-note{margin:0;font-size:13px;color:var(--muted)}
+
+/* overlays */
+.ov{position:fixed;inset:0;z-index:60;background:rgba(10,14,20,.55);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.dlg{width:min(760px,100%);max-height:100%;overflow:auto;background:var(--panel);color:var(--ink);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.35);display:flex;flex-direction:column}
+.dlg-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px 6px}
+.dlg-head h2{margin:0;font-family:var(--display);font-size:24px;font-weight:700;line-height:1.2}
+.dlg-body{padding:10px 20px 20px;display:flex;flex-direction:column;gap:14px}
+.tpl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.tpl{display:flex;flex-direction:column;gap:10px;text-align:left;background:var(--sunk);border:1px solid var(--line);border-radius:var(--r);padding:12px;cursor:pointer;color:var(--ink)}
+.tpl:hover{border-color:var(--brand)}
+.tpl .nm{font-weight:800;font-size:15px}
+.tpl .bl{font-size:13px;color:var(--muted)}
+.tpl .ex{font-family:var(--mono);font-size:11px;color:var(--accent-ink);text-transform:uppercase;letter-spacing:.08em}
+.pub-grid{display:grid;gap:14px}
+.pub{border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--sunk)}
+.pub h3{margin:0;font-size:16px;font-weight:800}
+.pub p,.pub ol{margin:0;font-size:14px;color:var(--muted)}
+.pub ol{padding-left:20px;display:flex;flex-direction:column;gap:3px}
+.pub pre{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-family:var(--mono);font-size:12.5px;white-space:pre-wrap;word-break:break-all;max-height:160px;overflow:auto}
+.pub .acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.prog{font-size:13px;font-weight:700;color:var(--muted)}
+.reader-ov{position:fixed;inset:0;z-index:70;background:#1E242E}
+.drop-zone{border:2px dashed var(--line);border-radius:var(--r);padding:22px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:10px;align-items:center}
+.drop-zone.over{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 8%,var(--panel))}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:90;background:var(--ink);color:var(--panel);padding:10px 16px;border-radius:999px;font-weight:700;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:calc(100% - 32px);text-align:center}
+@media (prefers-reduced-motion:reduce){.bk-cover{transition:none}}
+</style>
+<style id="fbe-css">
+/* ===== Flipbook engine: page design (shared by studio, reader and exported books) ===== */
+.fbe{--pw:612px;--ph:792px;--fs:12px;--mx:56px;--mt:58px;--mb:46px;
+  --c1:#142E54;--c2:#E0A23B;--paper:#FBFAF7;--ink:#1B2433;--muted:#5E6878;--on1:#FFFFFF;--on2:#142E54;--soft:#EFEBE2;
+  --fd:"Domine",Georgia,serif;--fb:"Nunito Sans",Arial,sans-serif;--fm:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+.fbe.sz-trade{--pw:540px;--ph:810px;--fs:13px;--mx:50px;--mt:54px;--mb:44px}
+.fbe.sz-square{--pw:700px;--ph:700px;--fs:13.5px;--mx:58px;--mt:54px;--mb:44px}
+.fbp{position:relative;width:var(--pw);height:var(--ph);overflow:hidden;background:var(--paper);color:var(--ink);font-family:var(--fb);font-size:var(--fs);line-height:1.55;box-sizing:border-box;text-align:left;-webkit-font-smoothing:antialiased}
+.fbp *,.fbp *::before,.fbp *::after{box-sizing:border-box}
+.fbp-body{position:absolute;left:var(--mx);right:var(--mx);top:var(--mt);bottom:calc(var(--mb) + 18px);display:flex;flex-direction:column;gap:calc(var(--fs) * .95);overflow:hidden}
+.fbp-foot{position:absolute;left:var(--mx);right:var(--mx);bottom:calc(var(--mb) - 14px);display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:calc(var(--fs) * .72);color:var(--muted);letter-spacing:.04em}
+.fbp-foot .t{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0;text-transform:uppercase;font-weight:700;letter-spacing:.12em}
+.fbp-foot .n{font-family:var(--fm);font-variant-numeric:tabular-nums}
+.fbp p{margin:0}
+.fbp a{color:var(--c1);text-decoration:underline;text-underline-offset:2px}
+.fbp strong{font-weight:800}
+/* blocks */
+.b-open{display:flex;flex-direction:column;gap:calc(var(--fs) * .5);padding-bottom:calc(var(--fs) * 1.1);margin-bottom:calc(var(--fs) * .2);border-bottom:2px solid var(--c2)}
+.b-open .k{font-family:var(--fm);font-size:calc(var(--fs) * .78);letter-spacing:.14em;text-transform:uppercase;color:var(--c1);opacity:.8}
+.b-open h2{margin:0;font-family:var(--fd);font-weight:700;font-size:calc(var(--fs) * 2.45);line-height:1.12;color:var(--c1);text-wrap:balance}
+.b-h{margin:calc(var(--fs) * .4) 0 0;font-family:var(--fd);font-weight:700;font-size:calc(var(--fs) * 1.42);line-height:1.25;color:var(--c1);text-wrap:balance}
+.b-p{hyphens:auto;-webkit-hyphens:auto}
+.b-list{margin:0;padding-left:1.35em;display:flex;flex-direction:column;gap:calc(var(--fs) * .35)}
+.b-list li::marker{color:var(--c1);font-weight:800}
+.b-quote{margin:0;padding:calc(var(--fs) * .2) 0 calc(var(--fs) * .2) calc(var(--fs) * 1.1);border-left:3px solid var(--c2);font-family:var(--fd);font-size:calc(var(--fs) * 1.2);line-height:1.45;color:var(--c1)}
+.b-quote cite{display:block;margin-top:calc(var(--fs) * .5);font-family:var(--fb);font-style:normal;font-size:calc(var(--fs) * .82);font-weight:700;color:var(--muted)}
+.b-call{background:var(--soft);border-radius:10px;padding:calc(var(--fs) * 1.1) calc(var(--fs) * 1.25);display:flex;flex-direction:column;gap:calc(var(--fs) * .4)}
+.b-call .lab{font-size:calc(var(--fs) * .72);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--c1)}
+.b-call .ti{font-family:var(--fd);font-weight:700;font-size:calc(var(--fs) * 1.12);line-height:1.3;color:var(--c1)}
+.b-call .src,.b-key .src,.fc .src{font-size:calc(var(--fs) * .78);font-weight:700;opacity:.8}
+.b-call.tone-warn{background:transparent;border:2px solid var(--c2)}
+.b-call.tone-rights{border-left:5px solid var(--c2)}
+.b-key{background:var(--c1);color:var(--on1);border-radius:10px;padding:calc(var(--fs) * 1.1) calc(var(--fs) * 1.3);display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px calc(var(--fs) * 1.2);align-items:center}
+.b-key .v{font-family:var(--fd);font-weight:700;font-size:calc(var(--fs) * 3.4);line-height:1;color:var(--c2);grid-row:span 3}
+.b-key .u{font-weight:800;font-size:calc(var(--fs) * 1.05)}
+.b-key .d{font-size:calc(var(--fs) * .95);line-height:1.45}
+.b-img{margin:0;display:flex;flex-direction:column;gap:6px}
+.b-img img{display:block;width:100%;height:auto;max-height:calc(var(--ph) * .5);object-fit:cover;border-radius:6px}
+.b-img.w-half{width:62%;align-self:center}
+.b-img figcaption{font-size:calc(var(--fs) * .78);color:var(--muted)}
+.b-btn{align-self:flex-start;display:inline-block;background:var(--c2);color:var(--on2)!important;text-decoration:none!important;font-weight:800;padding:calc(var(--fs) * .7) calc(var(--fs) * 1.25);border-radius:8px}
+.b-div{border:0;border-top:1px solid color-mix(in srgb,var(--ink) 18%,transparent);margin:calc(var(--fs) * .3) 0;width:100%}
+.b-flip{display:flex;flex-direction:column;gap:calc(var(--fs) * .8)}
+.b-flip .hd{font-size:calc(var(--fs) * .72);font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--c1)}
+/* flip card: a label wrapping a checkbox, so it flips back and forth with no script */
+.fc{display:block;position:relative;cursor:pointer;perspective:1400px;-webkit-tap-highlight-color:transparent}
+.fc input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.fc .in{display:grid;transition:transform .6s ease;transform-style:preserve-3d}
+.fc input:checked + .in{transform:rotateY(180deg)}
+.fc input:focus-visible + .in{outline:3px solid var(--c2);outline-offset:3px;border-radius:12px}
+.fc .sd{grid-area:1/1;-webkit-backface-visibility:hidden;backface-visibility:hidden;border-radius:12px;padding:calc(var(--fs) * 1) calc(var(--fs) * 1.15);display:flex;flex-direction:column;gap:calc(var(--fs) * .45)}
+.fc .fr{background:var(--paper);color:var(--c1);border:2px solid var(--c1)}
+.fc .bk{background:var(--c1);color:var(--on1);transform:rotateY(180deg)}
+.fc .pill{align-self:flex-start;font-size:calc(var(--fs) * .68);font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:3px 10px;border-radius:999px}
+.fc .fr .pill{background:var(--c1);color:var(--on1)}
+.fc .bk .pill{background:var(--c2);color:var(--on2)}
+.fc .q{font-family:var(--fd);font-weight:700;font-size:calc(var(--fs) * 1.08);line-height:1.35}
+.fc .hint{margin-top:auto;font-size:calc(var(--fs) * .74);font-weight:800;opacity:.75}
+/* print layout: both sides shown, front above the answer */
+.fbe.print .fc .in{display:flex;flex-direction:column;gap:6px}
+.fbe.print .fc .bk{transform:none}
+.fbe.print .fc .hint{display:none}
+/* cover */
+.fbp-cover{display:flex;flex-direction:column}
+.cv-bold{background:var(--c1);color:var(--on1)}
+.cv-in{position:absolute;inset:0;padding:calc(var(--mt) + 10px) var(--mx) var(--mb);display:flex;flex-direction:column;gap:calc(var(--fs) * 1.1)}
+.cv-badge{align-self:flex-start;font-size:calc(var(--fs) * .78);font-weight:800;letter-spacing:.16em;text-transform:uppercase;padding:6px 14px;border-radius:999px;background:var(--c2);color:var(--on2)}
+.cv-title{margin:0;font-family:var(--fd);font-weight:700;font-size:calc(var(--fs) * 3.9);line-height:1.04;text-wrap:balance;letter-spacing:-.01em}
+.cv-sub{margin:0;font-size:calc(var(--fs) * 1.35);line-height:1.4;max-width:30em;opacity:.92}
+.cv-author{margin-top:auto;font-weight:800;font-size:calc(var(--fs) * 1.05);letter-spacing:.04em;display:flex;align-items:center;gap:12px}
+.cv-author::before{content:"";width:34px;height:3px;background:var(--c2);flex:none}
+.cv-bold .cv-corner{position:absolute;right:0;bottom:0;width:38%;aspect-ratio:1;background:linear-gradient(135deg,transparent 50%,var(--c2) 50%);opacity:.95}
+.cv-bold .cv-author{position:relative;z-index:1}
+.cv-photo{background:var(--c1);color:#FFFFFF}
+.cv-photo .cv-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cv-photo .cv-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(8,14,26,.15) 0%,rgba(8,14,26,.25) 40%,rgba(8,14,26,.86) 100%)}
+.cv-photo .cv-in{justify-content:flex-end}
+.cv-photo .cv-author{margin-top:calc(var(--fs) * .8)}
+.cv-minimal{background:var(--paper);color:var(--c1)}
+.cv-minimal .cv-in{justify-content:center;border:2px solid var(--c1);inset:calc(var(--mx) * .45)}
+.cv-minimal .cv-img{width:100%;max-height:36%;object-fit:cover;border-radius:6px;display:block}
+.cv-minimal .cv-sub{color:var(--ink)}
+.cv-minimal .cv-author{margin-top:calc(var(--fs) * 1.5)}
+/* contents */
+.toc-h{margin:0 0 calc(var(--fs) * .6);font-family:var(--fd);font-weight:700;font-size:calc(var(--fs) * 2.2);color:var(--c1)}
+.toc{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.toc li{display:flex;align-items:baseline;gap:10px;padding:calc(var(--fs) * .55) 0;border-bottom:1px solid color-mix(in srgb,var(--ink) 14%,transparent)}
+.toc .no{font-family:var(--fm);font-size:calc(var(--fs) * .8);color:var(--muted);width:2.2em;flex:none}
+.toc .nm{flex:1;min-width:0;font-weight:700;font-size:calc(var(--fs) * 1.08);color:var(--c1)}
+.toc .pg{font-family:var(--fm);font-variant-numeric:tabular-nums;color:var(--muted)}
+.toc a{color:inherit;text-decoration:none}
+/* back cover */
+.fbp-back{background:var(--c1);color:var(--on1)}
+.bc-in{position:absolute;inset:0;padding:var(--mt) var(--mx);display:flex;flex-direction:column;justify-content:center;gap:calc(var(--fs) * 1.1)}
+.bc-in h2{margin:0;font-family:var(--fd);font-weight:700;font-size:calc(var(--fs) * 2.3);line-height:1.15;text-wrap:balance}
+.bc-in p{margin:0;font-size:calc(var(--fs) * 1.15);line-height:1.55;max-width:32em}
+.bc-in .b-btn{margin-top:calc(var(--fs) * .5)}
+.bc-contact{margin-top:calc(var(--fs) * 2)!important;font-weight:700;opacity:.85;font-size:var(--fs)!important}
+.fbp-blank{background:var(--paper)}
+@media (prefers-reduced-motion:reduce){.fc .in{transition:none}}
+
+/* ===== Flipbook reader ===== */
+.fbv{position:relative;display:flex;flex-direction:column;width:100%;height:100%;min-height:0;background:var(--rd-bg,#1F2530);color:var(--rd-fg,#EEF1F5);font-family:var(--rd-font,system-ui,sans-serif)}
+.fbv-bar{display:flex;align-items:center;gap:8px;padding:10px max(12px,env(safe-area-inset-right,0px)) 10px max(12px,env(safe-area-inset-left,0px));flex-wrap:wrap}
+.fbv-title{flex:1;min-width:0;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fbv-btn{font:inherit;font-size:13.5px;font-weight:700;color:inherit;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:8px;padding:8px 12px;cursor:pointer;line-height:1.2;display:inline-flex;align-items:center;gap:6px}
+.fbv-btn:hover{background:rgba(255,255,255,.15)}
+.fbv-btn:focus-visible,.fbv-nav:focus-visible,.fbv-range:focus-visible{outline:3px solid var(--rd-accent,#E0A23B);outline-offset:2px}
+.fbv-btn[disabled]{opacity:.45;cursor:default}
+.fbv-stage{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.fbv-book{position:relative;transition:transform .5s ease;perspective:2600px}
+.fbv-slot{position:absolute;top:0;overflow:hidden;background:#FFFFFF}
+.fbv-slot.empty{background:transparent}
+.fbv-slot .fbp,.fbv-face .fbp{transform-origin:0 0}
+.fbv-slot.l::after,.fbv-slot.r::after{content:"";position:absolute;top:0;bottom:0;width:7%;pointer-events:none}
+.fbv-slot.l::after{right:0;background:linear-gradient(90deg,transparent,rgba(0,0,0,.14))}
+.fbv-slot.r::after{left:0;background:linear-gradient(270deg,transparent,rgba(0,0,0,.12))}
+.fbv-slot.single::after{display:none}
+.fbv-shadow{position:absolute;inset:0;box-shadow:0 18px 50px rgba(0,0,0,.45);pointer-events:none}
+.fbv-leaf{position:absolute;top:0;transform-style:preserve-3d;z-index:5;will-change:transform}
+.fbv-face{position:absolute;inset:0;overflow:hidden;-webkit-backface-visibility:hidden;backface-visibility:hidden;background:#FFFFFF}
+.fbv-face.back{transform:rotateY(180deg)}
+.fbv-face::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(0,0,0,0) 60%,rgba(0,0,0,.18));opacity:var(--shade,0);transition:opacity .7s}
+.fbv-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:8;width:44px;height:64px;border-radius:10px;border:0;background:rgba(255,255,255,.1);color:inherit;font-size:28px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.fbv-nav:hover{background:rgba(255,255,255,.2)}
+.fbv-nav[disabled]{opacity:0;pointer-events:none}
+.fbv-nav.prev{left:max(8px,env(safe-area-inset-left,0px))}
+.fbv-nav.next{right:max(8px,env(safe-area-inset-right,0px))}
+.fbv-foot{display:flex;align-items:center;gap:12px;padding:10px max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px))}
+.fbv-range{flex:1;min-width:0;accent-color:var(--rd-accent,#E0A23B)}
+.fbv-count{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fbv-menu{position:absolute;z-index:20;top:56px;left:max(12px,env(safe-area-inset-left,0px));width:min(340px,calc(100% - 24px));max-height:calc(100% - 120px);overflow:auto;background:#FFFFFF;color:#18212F;border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.35);padding:8px}
+.fbv-menu button{display:flex;width:100%;gap:10px;align-items:baseline;text-align:left;font:inherit;font-size:14px;background:none;border:0;border-radius:8px;padding:10px 12px;cursor:pointer;color:inherit}
+.fbv-menu button:hover,.fbv-menu button:focus-visible{background:#EEF1F5;outline:none}
+.fbv-menu .pg{margin-left:auto;font-family:ui-monospace,Menlo,monospace;color:#5C6675;font-size:12.5px}
+.fbv-menu .nm{font-weight:700;min-width:0}
+.fbv-status{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:rgba(0,0,0,.72);color:#FFFFFF;padding:8px 14px;border-radius:999px;font-size:13px;font-weight:700;z-index:30}
+@media (max-width:560px){.fbv-title{order:-1;flex-basis:100%;font-size:14px}.fbv-bar{gap:6px}.fbv-btn{padding:7px 10px;font-size:13px}.fbv-full{display:none}}
+@media (prefers-reduced-motion:reduce){.fbv-book{transition:none}}
+</style>
+<header class="top">
+  <div class="top-in">
+    <button class="mark" id="home" type="button" aria-label="Flipbook Studio, back to your books"><span class="glyph" aria-hidden="true"></span>Flipbook Studio</button>
+    <div class="crumb" id="crumb" hidden>
+      <span class="sep" aria-hidden="true">/</span>
+      <label class="sr" for="bookTitle">Book title</label>
+      <input id="bookTitle" type="text" autocomplete="off">
+    </div>
+    <div class="top-actions" id="libActs">
+      <button class="btn btn-line" id="btnImport" type="button">Import</button>
+      <button class="btn btn-primary" id="btnNew" type="button">New book</button>
+    </div>
+    <div class="top-actions" id="edActs" hidden>
+      <span class="saved" id="saved" aria-live="polite"></span>
+      <button class="btn btn-line" id="btnRead" type="button">Preview flipbook</button>
+      <button class="btn btn-accent" id="btnPublish" type="button">Publish</button>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  <section id="viewLib" aria-labelledby="libTitle">
+    <div class="lib-head">
+      <div>
+        <h1 id="libTitle">Your books</h1>
+        <p>Write a guide, ebook or newsletter once. Readers get a page-turning flipbook, an embed for your website and a PDF.</p>
+      </div>
+    </div>
+    <p class="storage-note" id="storageNote" hidden></p>
+    <div class="shelf" id="shelf"></div>
+  </section>
+  <section id="viewEd" hidden aria-label="Book editor">
+    <div class="ed">
+      <aside class="side panel" id="side" aria-label="Sections and design"></aside>
+      <div class="col" id="col"></div>
+      <aside class="pv panel" id="pv" aria-label="Live pages"></aside>
+    </div>
+  </section>
+</main>
+<div id="layer"></div>
+<div class="toast" id="toast" role="status" hidden></div>
+<input type="file" id="filePick" hidden>
+<script id="fbe-js">
+/* ===== Flipbook engine (shared by studio, reader and exported books) ===== */
+(function(global){
+'use strict';
+var FBE = {};
+
+FBE.SIZES = {
+  letter:{w:612,h:792,inW:8.5,inH:11,label:'Letter, 8.5 × 11 in'},
+  trade:{w:540,h:810,inW:6,inH:9,label:'Book, 6 × 9 in'},
+  square:{w:700,h:700,inW:8,inH:8,label:'Square, 8 × 8 in'}
+};
+FBE.FONTS = {
+  classic:{label:'Domine + Nunito Sans', d:'"Domine", Georgia, serif', b:'"Nunito Sans", Arial, sans-serif', q:'family=Domine:wght@500;700&family=Nunito+Sans:wght@400;600;700;800'},
+  warm:{label:'Fraunces + Figtree', d:'"Fraunces", Georgia, serif', b:'"Figtree", Arial, sans-serif', q:'family=Fraunces:wght@600;700&family=Figtree:wght@400;600;700;800'},
+  bookish:{label:'Libre Baskerville + Source Sans 3', d:'"Libre Baskerville", Georgia, serif', b:'"Source Sans 3", Arial, sans-serif', q:'family=Libre+Baskerville:wght@400;700&family=Source+Sans+3:wght@400;600;700;800'},
+  editorial:{label:'Bricolage Grotesque + Literata', d:'"Bricolage Grotesque", Arial, sans-serif', b:'"Literata", Georgia, serif', q:'family=Bricolage+Grotesque:wght@600;700;800&family=Literata:wght@400;600;700'}
+};
+FBE.THEMES = {
+  advocate:{label:'Advocate', c1:'#142E54', c2:'#E0A23B', paper:'#FBFAF7', ink:'#1B2433'},
+  evergreen:{label:'Evergreen', c1:'#1E4D3B', c2:'#D08A3A', paper:'#FAF8F2', ink:'#1C2621'},
+  plum:{label:'Plum', c1:'#4A2545', c2:'#E2795B', paper:'#FFF9F6', ink:'#2A1C28'},
+  harbor:{label:'Harbor', c1:'#0F4C5C', c2:'#F2B134', paper:'#F7FAFA', ink:'#16262B'},
+  graphite:{label:'Graphite', c1:'#262B33', c2:'#3D7DD8', paper:'#FFFFFF', ink:'#1D2129'}
+};
+FBE.fontHref = function(keys){
+  var qs = (keys || Object.keys(FBE.FONTS)).map(function(k){ return (FBE.FONTS[k] || FBE.FONTS.classic).q; });
+  return 'https://fonts.googleapis.com/css2?' + qs.join('&') + '&display=swap';
+};
+
+/* ---------- helpers ---------- */
+function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function t(s){ return String(s == null ? '' : s).trim(); }
+function safeUrl(u){
+  u = t(u); if(!u) return '';
+  if(/^(https?:|mailto:|tel:)/i.test(u)) return u;
+  if(/^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(u)) return 'https://' + u;
+  return '';
+}
+function safeImg(u){ u = t(u); return /^(data:image\/|https:\/\/|blob:)/i.test(u) ? u : ''; }
+function hex(c, f){ return /^#[0-9a-f]{6}$/i.test(c || '') ? c : f; }
+function lum(h){
+  var r = parseInt(h.slice(1,3),16)/255, g = parseInt(h.slice(3,5),16)/255, b = parseInt(h.slice(5,7),16)/255;
+  function f(v){ return v <= .03928 ? v/12.92 : Math.pow((v+.055)/1.055, 2.4); }
+  return .2126*f(r) + .7152*f(g) + .0722*f(b);
+}
+function onColor(h){ return lum(h) > .42 ? '#14202F' : '#FFFFFF'; }
+function mix(a, b, p){
+  var x = [1,3,5].map(function(i){ return Math.round(parseInt(a.slice(i,i+2),16)*(1-p) + parseInt(b.slice(i,i+2),16)*p); });
+  return '#' + x.map(function(v){ return ('0' + v.toString(16)).slice(-2); }).join('');
+}
+/* inline marks: **bold**, *italic*, [text](url) */
+function inline(s){
+  var h = esc(s);
+  h = h.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function(m, txt, url){ var u = safeUrl(url.replace(/&amp;/g,'&')); return u ? '<a href="' + esc(u) + '" target="_blank" rel="noopener">' + txt + '</a>' : txt; });
+  h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g, '$1<em>$2</em>');
+  return h.replace(/\n/g, '<br>');
+}
+FBE.esc = esc; FBE.inline = inline; FBE.safeUrl = safeUrl; FBE.safeImg = safeImg; FBE.onColor = onColor;
+
+FBE.themeOf = function(pub){
+  var s = pub.settings || {};
+  var base = FBE.THEMES[s.theme] || FBE.THEMES.advocate;
+  var c = s.colors || {};
+  var c1 = hex(c.c1, base.c1), c2 = hex(c.c2, base.c2), paper = hex(c.paper, base.paper), ink = hex(c.ink, base.ink);
+  return {c1:c1, c2:c2, paper:paper, ink:ink, on1:onColor(c1), on2:onColor(c2), muted:mix(ink, paper, .38), soft:mix(paper, c1, .07)};
+};
+FBE.vars = function(pub){
+  var th = FBE.themeOf(pub), f = FBE.FONTS[(pub.settings || {}).fonts] || FBE.FONTS.classic;
+  return '--c1:' + th.c1 + ';--c2:' + th.c2 + ';--paper:' + th.paper + ';--ink:' + th.ink + ';--on1:' + th.on1 + ';--on2:' + th.on2 + ';--muted:' + th.muted + ';--soft:' + th.soft + ';--fd:' + f.d + ';--fb:' + f.b;
+};
+FBE.sizeOf = function(pub){ return FBE.SIZES[(pub.settings || {}).size] || FBE.SIZES.letter; };
+FBE.bookClass = function(pub){ return 'fbe sz-' + (FBE.SIZES[(pub.settings || {}).size] ? pub.settings.size : 'letter'); };
+/* apply the book's look to a container element */
+FBE.dress = function(el, pub, extra){
+  el.className = FBE.bookClass(pub) + (extra ? ' ' + extra : '');
+  el.setAttribute('style', (el.dataset.baseStyle || '') + FBE.vars(pub));
+};
+
+/* ---------- blocks ---------- */
+FBE.BLOCKS = {
+  heading:'Subheading', paragraph:'Paragraph', list:'List', quote:'Quote', callout:'Callout box',
+  keynum:'Key number', flip:'Flip cards', image:'Image', button:'Button link', divider:'Divider', pagebreak:'Page break'
+};
+function flipHtml(b){
+  var FL = t(b.frontLabel) || 'Myth', BL = t(b.backLabel) || 'Fact';
+  var cards = (b.cards || []).filter(function(c){ return t(c.f) && t(c.b); });
+  if(!cards.length) return '';
+  return '<div class="b-flip">' + (t(b.title) ? '<div class="hd">' + esc(b.title) + '</div>' : '') +
+    cards.map(function(c){
+      return '<label class="fc"><input type="checkbox" aria-label="Flip card: show the ' + esc(BL.toLowerCase()) + '"><span class="in">' +
+        '<span class="sd fr"><span class="pill">' + esc(FL) + '</span><span class="q">' + inline(c.f) + '</span><span class="hint">Tap to flip</span></span>' +
+        '<span class="sd bk"><span class="pill">' + esc(BL) + '</span><span>' + inline(c.b) + '</span>' + (t(c.cite) ? '<span class="src">Source: ' + esc(c.cite) + '</span>' : '') + '<span class="hint">Tap to flip back</span></span>' +
+        '</span></label>';
+    }).join('') + '</div>';
+}
+FBE.blockHtml = function(b, opts){
+  opts = opts || {};
+  switch(b.type){
+    case 'heading': return t(b.text) ? '<h3 class="b-h">' + inline(b.text) + '</h3>' : '';
+    case 'paragraph': return t(b.text) ? '<p class="b-p">' + inline(b.text) + '</p>' : '';
+    case 'list':
+      var items = (opts.items || String(b.text || '').split('\n')).map(t).filter(Boolean);
+      if(!items.length) return '';
+      var tag = b.style === 'number' ? 'ol' : 'ul';
+      return '<' + tag + ' class="b-list"' + (tag === 'ol' && opts.start > 1 ? ' start="' + opts.start + '"' : '') + '>' + items.map(function(i){ return '<li>' + inline(i) + '</li>'; }).join('') + '</' + tag + '>';
+    case 'quote': return t(b.text) ? '<blockquote class="b-quote">' + inline(b.text) + (t(b.by) ? '<cite>' + esc(b.by) + '</cite>' : '') + '</blockquote>' : '';
+    case 'callout':
+      if(!t(b.title) && !t(b.text)) return '';
+      var lab = b.tone === 'rights' ? 'Know your rights' : b.tone === 'warn' ? 'Watch out' : (t(b.label) || 'Good to know');
+      return '<div class="b-call tone-' + esc(b.tone || 'info') + '"><div class="lab">' + esc(t(b.label) || lab) + '</div>' + (t(b.title) ? '<div class="ti">' + inline(b.title) + '</div>' : '') + (t(b.text) ? '<div>' + inline(b.text) + '</div>' : '') + (t(b.cite) ? '<div class="src">Source: ' + esc(b.cite) + '</div>' : '') + '</div>';
+    case 'keynum':
+      if(!t(b.value)) return '';
+      return '<div class="b-key"><div class="v">' + esc(b.value) + '</div>' + (t(b.unit) ? '<div class="u">' + esc(b.unit) + '</div>' : '') + (t(b.text) ? '<div class="d">' + inline(b.text) + '</div>' : '') + (t(b.cite) ? '<div class="src">Source: ' + esc(b.cite) + '</div>' : '') + '</div>';
+    case 'flip': return flipHtml(b);
+    case 'image':
+      var src = safeImg(b.src); if(!src) return '';
+      var dm = (b.w && b.h) ? {w:b.w, h:b.h} : FBE.imgDims[src];
+      return '<figure class="b-img w-' + (b.width === 'half' ? 'half' : 'full') + '"><img src="' + esc(src) + '"' + (dm ? ' width="' + Math.round(dm.w) + '" height="' + Math.round(dm.h) + '"' : '') + ' alt="' + esc(t(b.alt) || t(b.caption)) + '">' + (t(b.caption) ? '<figcaption>' + inline(b.caption) + '</figcaption>' : '') + '</figure>';
+    case 'button':
+      var u = safeUrl(b.url); if(!t(b.text) || !u) return '';
+      return '<a class="b-btn" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(b.text) + ' &#8594;</a>';
+    case 'divider': return '<hr class="b-div">';
+    default: return '';
+  }
+};
+
+/* ---------- get images and fonts ready before measuring pages ---------- */
+FBE.imgDims = {};
+FBE.prepare = function(pub){
+  var jobs = [];
+  (pub.chapters || []).forEach(function(ch){ (ch.blocks || []).forEach(function(b){
+    var src = b.type === 'image' && safeImg(b.src);
+    if(!src || (b.w && b.h) || FBE.imgDims[src]) return;
+    jobs.push(new Promise(function(res){
+      var im = new Image();
+      im.onload = function(){ FBE.imgDims[src] = {w:im.naturalWidth || 4, h:im.naturalHeight || 3}; res(); };
+      im.onerror = function(){ FBE.imgDims[src] = {w:4, h:3}; res(); };
+      im.src = src;
+      setTimeout(res, 6000);
+    }));
+  }); });
+  var f = FBE.FONTS[(pub.settings || {}).fonts] || FBE.FONTS.classic;
+  if(document.fonts && document.fonts.load){
+    var fd = f.d.split(',')[0], fb = f.b.split(',')[0];
+    ['700 24px ' + fd, '400 14px ' + fb, '700 14px ' + fb, '800 14px ' + fb, 'italic 400 14px ' + fb].forEach(function(spec){
+      jobs.push(Promise.race([document.fonts.load(spec).catch(function(){}), new Promise(function(r){ setTimeout(r, 4000); })]));
+    });
+  }
+  return Promise.all(jobs);
+};
+
+/* ---------- special pages ---------- */
+function foot(pub, num){
+  var s = pub.settings || {};
+  if(s.pageNumbers === false) return '';
+  return '<div class="fbp-foot"><span class="t">' + esc(t(pub.title)) + '</span><span class="n">' + num + '</span></div>';
+}
+FBE.coverHtml = function(pub){
+  var c = pub.cover || {}, style = c.style || 'bold';
+  var img = safeImg(c.image);
+  if(style === 'photo' && !img) style = 'bold';
+  var inner = (t(c.badge) ? '<span class="cv-badge">' + esc(c.badge) + '</span>' : '') +
+    '<h1 class="cv-title">' + esc(t(pub.title) || 'Untitled book') + '</h1>' +
+    (t(c.subtitle) ? '<p class="cv-sub">' + esc(c.subtitle) + '</p>' : '') +
+    (t(c.author) ? '<div class="cv-author">' + esc(c.author) + '</div>' : '');
+  if(style === 'photo') return '<div class="fbp fbp-cover cv-photo"><img class="cv-img" src="' + esc(img) + '" alt=""><div class="cv-shade"></div><div class="cv-in">' + inner + '</div></div>';
+  if(style === 'minimal') return '<div class="fbp fbp-cover cv-minimal"><div class="cv-in">' + (img ? '<img class="cv-img" src="' + esc(img) + '" alt="">' : '') + inner + '</div></div>';
+  return '<div class="fbp fbp-cover cv-bold"><div class="cv-corner"></div><div class="cv-in">' + inner + '</div></div>';
+};
+FBE.backHtml = function(pub){
+  var b = pub.back || {};
+  var u = safeUrl(b.url);
+  return '<div class="fbp fbp-back"><div class="bc-in">' +
+    (t(b.heading) ? '<h2>' + esc(b.heading) + '</h2>' : '') +
+    (t(b.text) ? '<p>' + inline(b.text) + '</p>' : '') +
+    (t(b.button) && u ? '<a class="b-btn" href="' + esc(u) + '" target="_blank" rel="noopener">' + esc(b.button) + ' &#8594;</a>' : '') +
+    (t(b.contact) ? '<p class="bc-contact">' + inline(b.contact) + '</p>' : '') +
+    '</div></div>';
+};
+function tocHtml(pub, entries, num){
+  return '<div class="fbp fbp-toc"><div class="fbp-body"><h2 class="toc-h">Contents</h2><ol class="toc">' +
+    entries.map(function(e, i){ return '<li><span class="no">' + ('0' + (i + 1)).slice(-2) + '</span><span class="nm"><a href="#p' + e.page + '" data-goto="' + e.page + '">' + esc(e.title) + '</a></span><span class="pg">' + e.page + '</span></li>'; }).join('') +
+    '</ol></div>' + foot(pub, num) + '</div>';
+}
+
+/* ---------- pagination ---------- */
+var measureHost = null;
+function host(pub, print){
+  if(!measureHost){
+    measureHost = document.createElement('div');
+    measureHost.setAttribute('aria-hidden', 'true');
+    measureHost.dataset.baseStyle = 'position:fixed;left:-20000px;top:0;visibility:hidden;pointer-events:none;contain:layout;';
+    document.body.appendChild(measureHost);
+  }
+  FBE.dress(measureHost, pub, print ? 'print' : '');
+  measureHost.innerHTML = '';
+  return measureHost;
+}
+function chapterOpener(ch, idx, label){
+  return '<div class="b-open"><span class="k">' + esc(label || ('Chapter ' + (idx + 1))) + '</span><h2>' + esc(t(ch.title) || 'Untitled chapter') + '</h2></div>';
+}
+function balanced(words){
+  var s = words.join(' ');
+  var b = (s.match(/\*\*/g) || []).length;
+  var single = (s.replace(/\*\*/g,'').match(/\*/g) || []).length;
+  var o = (s.match(/\[/g) || []).length, c = (s.match(/\]\([^)]*\)/g) || []).length;
+  return b % 2 === 0 && single % 2 === 0 && o === c;
+}
+/* Lays the book out into fixed-size pages, measuring real text so content flows across pages. */
+FBE.paginate = function(pub, opts){
+  opts = opts || {};
+  var H = host(pub, opts.print);
+  var pages = [];
+  var chapters = pub.chapters || [];
+  var s = pub.settings || {};
+  pages.push({kind:'cover', html:FBE.coverHtml(pub)});
+  var hasToc = s.toc !== false && chapters.length > 1;
+  if(hasToc) pages.push({kind:'toc', html:''});
+  var entries = [];
+  var page = null, body = null;
+  function open(ch){
+    var el = document.createElement('div');
+    el.className = 'fbp fbp-content';
+    el.innerHTML = '<div class="fbp-body"></div>';
+    H.appendChild(el);
+    page = {kind:'content', chapter:ch, el:el};
+    body = el.firstChild;
+  }
+  function close(){
+    if(!page) return;
+    page.el.insertAdjacentHTML('beforeend', foot(pub, pages.length + 1));
+    page.html = page.el.outerHTML;
+    pages.push({kind:'content', chapter:page.chapter, html:page.html});
+    H.removeChild(page.el);
+    page = null; body = null;
+  }
+  function over(){ return body.scrollHeight > body.clientHeight + 1; }
+  function node(html){ var d = document.createElement('div'); d.innerHTML = html; return d.firstChild; }
+  function place(html){
+    var n = node(html); if(!n) return true;
+    body.appendChild(n);
+    if(!over()) return true;
+    body.removeChild(n);
+    return false;
+  }
+  function remaining(){ return body.clientHeight - body.scrollHeight; }
+  function isEmpty(){ return !body.firstChild; }
+  function placeForce(html){
+    var n = node(html); if(!n) return;
+    body.appendChild(n);
+    if(over()){
+      var img = n.querySelector && n.querySelector('img');
+      if(img){ img.style.maxHeight = Math.max(80, body.clientHeight - 60) + 'px'; }
+      if(n.classList && (n.classList.contains('b-flip') || n.classList.contains('b-call'))) n.style.fontSize = '.9em';
+    }
+  }
+  function addText(b, ci){
+    var words = String(b.text || '').trim().split(/\s+/);
+    while(words.length){
+      var full = FBE.blockHtml({type:b.type, text:words.join(' ')});
+      if(place(full)) return;
+      /* find the most words that fit on this page */
+      var lo = 0, hi = words.length - 1, best = 0;
+      while(lo <= hi){
+        var mid = (lo + hi) >> 1;
+        var n = node(FBE.blockHtml({type:b.type, text:words.slice(0, mid).join(' ')}));
+        if(!n || mid === 0){ lo = mid + 1; continue; }
+        body.appendChild(n);
+        var ok = !over(); body.removeChild(n);
+        if(ok){ best = mid; lo = mid + 1; } else hi = mid - 1;
+      }
+      while(best > 0 && !balanced(words.slice(0, best))) best--;
+      if(best < 4){
+        if(isEmpty()){ placeForce(full); return; }
+        close(); open(ci); continue;
+      }
+      place(FBE.blockHtml({type:b.type, text:words.slice(0, best).join(' ')}));
+      words = words.slice(best);
+      close(); open(ci);
+    }
+  }
+  function addList(b, ci){
+    var items = String(b.text || '').split('\n').map(t).filter(Boolean);
+    var start = 1;
+    while(items.length){
+      var k = items.length;
+      while(k > 0 && !place(FBE.blockHtml(b, {items:items.slice(0, k), start:start}))) k--;
+      if(k === 0){
+        if(isEmpty()){ placeForce(FBE.blockHtml(b, {items:items.slice(0, 1), start:start})); k = 1; }
+        else { close(); open(ci); continue; }
+      }
+      items = items.slice(k); start += k;
+      if(items.length){ close(); open(ci); }
+    }
+  }
+  chapters.forEach(function(ch, ci){
+    if(page) close();
+    open(ci);
+    entries.push({title:t(ch.title) || 'Untitled chapter', page:pages.length + 1});
+    placeForce(chapterOpener(ch, ci, t(ch.kicker)));
+    (ch.blocks || []).forEach(function(b){
+      if(b.type === 'pagebreak'){ if(!isEmpty()){ close(); open(ci); } return; }
+      if(b.type === 'heading' && !isEmpty() && remaining() < 110){ close(); open(ci); }
+      if(b.type === 'paragraph'){ addText(b, ci); return; }
+      if(b.type === 'list'){ addList(b, ci); return; }
+      var html = FBE.blockHtml(b); if(!html) return;
+      if(place(html)) return;
+      if(isEmpty()){ placeForce(html); return; }
+      /* keep a heading with the block that follows it */
+      var last = body.lastChild;
+      var carry = last && last.classList && last.classList.contains('b-h') ? last : null;
+      if(carry) body.removeChild(carry);
+      close(); open(ci);
+      if(carry) body.appendChild(carry);
+      if(!place(html)) placeForce(html);
+    });
+  });
+  if(page) close();
+  if(pub.back && (t(pub.back.heading) || t(pub.back.text) || t(pub.back.button))) pages.push({kind:'back', html:FBE.backHtml(pub)});
+  if(hasToc) pages[1].html = tocHtml(pub, entries, 2);
+  H.innerHTML = '';
+  pages.forEach(function(p, i){ p.num = i + 1; });
+  pages.toc = entries;
+  return pages;
+};
+
+/* ---------- reader ---------- */
+function el(tag, cls, html){ var e = document.createElement(tag); if(cls) e.className = cls; if(html != null) e.innerHTML = html; return e; }
+var reduce = global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+FBE.Viewer = function(root, pub, pages, opts){
+  opts = opts || {};
+  var self = this;
+  var size = FBE.sizeOf(pub), W = size.w, Hh = size.h;
+  var n = pages.length;
+  var spread = false, scale = 1, idx = 0, busy = false;
+  root.innerHTML = '';
+  var v = el('div', 'fbv'); root.appendChild(v);
+  var th = FBE.themeOf(pub);
+  v.style.setProperty('--rd-accent', th.c2);
+  var bar = el('div', 'fbv-bar');
+  var bToc = el('button', 'fbv-btn', 'Contents'); bToc.type = 'button'; bToc.setAttribute('aria-expanded', 'false');
+  var title = el('div', 'fbv-title'); title.textContent = t(pub.title) || 'Untitled book';
+  bar.appendChild(bToc); bar.appendChild(title);
+  (opts.actions || []).forEach(function(a){
+    var b = el('button', 'fbv-btn'); b.type = 'button'; b.textContent = a.label;
+    b.addEventListener('click', function(){ a.run(b, self); });
+    bar.appendChild(b);
+  });
+  var bFull = el('button', 'fbv-btn fbv-full', 'Full screen'); bFull.type = 'button';
+  if(document.fullscreenEnabled) bar.appendChild(bFull);
+  if(opts.onClose){ var bClose = el('button', 'fbv-btn', 'Close'); bClose.type = 'button'; bClose.addEventListener('click', opts.onClose); bar.appendChild(bClose); }
+  v.appendChild(bar);
+  var stage = el('div', 'fbv-stage'); v.appendChild(stage);
+  var book = el('div', 'fbv-book'); stage.appendChild(book);
+  var prev = el('button', 'fbv-nav prev', '&#8249;'); prev.type = 'button'; prev.setAttribute('aria-label', 'Previous page');
+  var next = el('button', 'fbv-nav next', '&#8250;'); next.type = 'button'; next.setAttribute('aria-label', 'Next page');
+  stage.appendChild(prev); stage.appendChild(next);
+  var footEl = el('div', 'fbv-foot');
+  var range = el('input', 'fbv-range'); range.type = 'range'; range.min = 1; range.max = n; range.value = 1; range.setAttribute('aria-label', 'Go to page');
+  var count = el('span', 'fbv-count');
+  footEl.appendChild(range); footEl.appendChild(count); v.appendChild(footEl);
+  var menu = null;
+  var live = el('div', ''); live.setAttribute('aria-live', 'polite'); live.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)'; v.appendChild(live);
+
+  var dress = el('div'); /* carries the book's look for pages inside the reader */
+  FBE.dress(dress, pub);
+  var dressCls = dress.className, dressStyle = dress.getAttribute('style');
+
+  function pageNode(i){
+    var wrap = el('div', dressCls);
+    wrap.setAttribute('style', dressStyle + ';position:absolute;left:0;top:0');
+    if(i == null || i < 0 || i >= n){ wrap.innerHTML = '<div class="fbp fbp-blank"></div>'; }
+    else wrap.innerHTML = pages[i].html;
+    var p = wrap.firstChild;
+    p.style.transform = 'scale(' + scale + ')';
+    p.style.transformOrigin = '0 0';
+    return wrap;
+  }
+  function slot(cls, i, left){
+    var s = el('div', 'fbv-slot ' + cls + (i == null || i < 0 || i >= n ? ' empty' : ''));
+    s.style.width = W * scale + 'px'; s.style.height = Hh * scale + 'px'; s.style.left = left + 'px';
+    if(!(i == null || i < 0 || i >= n)) s.appendChild(pageNode(i));
+    return s;
+  }
+  /* spread s shows pages [2s-1, 2s] (0-based); spread 0 is the cover alone on the right */
+  function spreadOf(i){ return Math.floor((i + 1) / 2); }
+  function spreadPages(sp){ return [sp === 0 ? null : 2 * sp - 1, 2 * sp <= n - 1 ? 2 * sp : null]; }
+  function lastSpread(){ return Math.floor(n / 2); }
+  function layout(){
+    var r = stage.getBoundingClientRect();
+    var aw = Math.max(200, r.width - 120), ah = Math.max(200, r.height - 28);
+    if(r.width < 560){ aw = Math.max(160, r.width - 24); }
+    spread = r.width >= 760 && (aw / (2 * W)) * Hh <= ah * 1.05 ? true : (r.width >= 980);
+    scale = Math.min(aw / ((spread ? 2 : 1) * W), ah / Hh);
+    scale = Math.max(.2, Math.min(scale, 2.2));
+    render();
+  }
+  function shift(sp){
+    if(!spread) return 0;
+    var pp = spreadPages(sp);
+    if(pp[0] == null) return -W * scale / 2;
+    if(pp[1] == null) return W * scale / 2;
+    return 0;
+  }
+  function render(){
+    book.innerHTML = '';
+    var w = W * scale, h = Hh * scale;
+    book.style.width = (spread ? 2 * w : w) + 'px'; book.style.height = h + 'px';
+    if(spread){
+      var sp = spreadOf(idx), pp = spreadPages(sp);
+      book.appendChild(slot('l', pp[0], 0));
+      book.appendChild(slot('r', pp[1], w));
+      book.style.transform = 'translateX(' + shift(sp) + 'px)';
+    } else {
+      book.appendChild(slot('single', idx, 0));
+      book.style.transform = 'none';
+    }
+    var sh = el('div', 'fbv-shadow'); book.appendChild(sh);
+    if(spread){
+      var p2 = spreadPages(spreadOf(idx));
+      sh.style.left = (p2[0] == null ? w : 0) + 'px'; sh.style.right = (p2[1] == null ? w : 0) + 'px';
+    }
+    update();
+  }
+  function shown(){ if(!spread) return [idx]; return spreadPages(spreadOf(idx)).filter(function(x){ return x != null; }); }
+  function update(){
+    var s = shown();
+    count.textContent = (s.length > 1 ? (s[0] + 1) + '–' + (s[1] + 1) : (s[0] + 1)) + ' / ' + n;
+    range.value = s[0] + 1;
+    prev.disabled = spread ? spreadOf(idx) === 0 : idx === 0;
+    next.disabled = spread ? spreadOf(idx) >= lastSpread() : idx >= n - 1;
+    live.textContent = 'Page ' + count.textContent.replace(' / ', ' of ');
+    if(opts.onPage) opts.onPage(s[0]);
+  }
+  function leaf(front, back, left, origin){
+    var w = W * scale, h = Hh * scale;
+    var lf = el('div', 'fbv-leaf');
+    lf.style.width = w + 'px'; lf.style.height = h + 'px'; lf.style.left = left + 'px';
+    lf.style.transformOrigin = origin;
+    var f = el('div', 'fbv-face front'); f.appendChild(pageNode(front));
+    var b = el('div', 'fbv-face back'); b.appendChild(pageNode(back));
+    lf.appendChild(f); lf.appendChild(b);
+    return lf;
+  }
+  function animate(lf, from, to, after){
+    lf.style.transform = 'rotateY(' + from + 'deg)';
+    book.appendChild(lf);
+    if(reduce){ after(); return; }
+    busy = true;
+    lf.getBoundingClientRect();
+    lf.style.transition = 'transform .75s cubic-bezier(.4,.05,.25,1)';
+    lf.style.transform = 'rotateY(' + to + 'deg)';
+    lf.querySelectorAll('.fbv-face').forEach(function(f){ f.style.setProperty('--shade', '1'); });
+    var done = false;
+    function fin(){ if(done) return; done = true; busy = false; after(); }
+    lf.addEventListener('transitionend', fin);
+    setTimeout(fin, 900);
+  }
+  function go(dir){
+    if(busy) return;
+    var w = W * scale;
+    if(spread){
+      var sp = spreadOf(idx), to = sp + dir;
+      if(to < 0 || to > lastSpread()) return;
+      var cur = spreadPages(sp), nx = spreadPages(to);
+      book.innerHTML = '';
+      if(dir > 0){
+        book.appendChild(slot('l', cur[0], 0));
+        book.appendChild(slot('r', nx[1], w));
+        book.style.transform = 'translateX(' + shift(to) + 'px)';
+        animate(leaf(cur[1], nx[0], w, '0 50%'), 0, -180, function(){ idx = nx[0] != null ? nx[0] : nx[1]; render(); });
+      } else {
+        book.appendChild(slot('l', nx[0], 0));
+        book.appendChild(slot('r', cur[1], w));
+        book.style.transform = 'translateX(' + shift(to) + 'px)';
+        animate(leaf(cur[0], nx[1], 0, '100% 50%'), 0, 180, function(){ idx = nx[1] != null ? nx[1] : nx[0]; if(nx[0] != null) idx = nx[0]; render(); });
+      }
+    } else {
+      var j = idx + dir;
+      if(j < 0 || j >= n) return;
+      book.innerHTML = '';
+      if(dir > 0){
+        book.appendChild(slot('single', j, 0));
+        animate(leaf(idx, null, 0, '0 50%'), 0, -160, function(){ idx = j; render(); });
+      } else {
+        book.appendChild(slot('single', idx, 0));
+        animate(leaf(j, null, 0, '0 50%'), -160, 0, function(){ idx = j; render(); });
+      }
+    }
+  }
+  self.goTo = function(i){ idx = Math.max(0, Math.min(n - 1, i)); render(); };
+  self.next = function(){ go(1); };
+  self.prev = function(){ go(-1); };
+  self.status = function(msg, ms){
+    var s = v.querySelector('.fbv-status'); if(s) s.remove();
+    if(!msg) return;
+    s = el('div', 'fbv-status'); s.textContent = msg; v.appendChild(s);
+    if(ms) setTimeout(function(){ s.remove(); }, ms);
+  };
+  prev.addEventListener('click', function(){ go(-1); });
+  next.addEventListener('click', function(){ go(1); });
+  range.addEventListener('input', function(){ self.goTo(Number(range.value) - 1); });
+  bFull.addEventListener('click', function(){
+    try{
+      if(document.fullscreenElement) document.exitFullscreen();
+      else { var p = root.requestFullscreen && root.requestFullscreen(); if(p && p.catch) p.catch(function(){ self.status('Full screen is not available here', 2200); }); }
+    }catch(e){ self.status('Full screen is not available here', 2200); }
+  });
+  function closeMenu(){ if(menu){ menu.remove(); menu = null; bToc.setAttribute('aria-expanded', 'false'); } }
+  bToc.addEventListener('click', function(){
+    if(menu){ closeMenu(); bToc.focus(); return; }
+    menu = el('div', 'fbv-menu'); menu.setAttribute('role', 'menu');
+    var items = [{title:'Cover', page:1}].concat(pages.toc || []);
+    if(pages.length && pages[pages.length - 1].kind === 'back') items.push({title:'Back cover', page:pages.length});
+    items.forEach(function(it){
+      var b = el('button'); b.type = 'button'; b.setAttribute('role', 'menuitem');
+      b.innerHTML = '<span class="nm"></span><span class="pg"></span>';
+      b.querySelector('.nm').textContent = it.title; b.querySelector('.pg').textContent = 'p. ' + it.page;
+      b.addEventListener('click', function(){ closeMenu(); self.goTo(it.page - 1); bToc.focus(); });
+      menu.appendChild(b);
+    });
+    v.appendChild(menu); bToc.setAttribute('aria-expanded', 'true');
+    var first = menu.querySelector('button'); if(first) first.focus();
+  });
+  v.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && menu){ closeMenu(); bToc.focus(); return; }
+    if(/input|textarea|select/i.test(e.target.tagName) && e.target !== range) return;
+    if(e.target === range) return;
+    if(e.key === 'ArrowRight' || e.key === 'PageDown'){ e.preventDefault(); go(1); }
+    else if(e.key === 'ArrowLeft' || e.key === 'PageUp'){ e.preventDefault(); go(-1); }
+    else if(e.key === 'Home'){ self.goTo(0); }
+    else if(e.key === 'End'){ self.goTo(n - 1); }
+  });
+  /* contents links inside pages, and clicks on the outer edge of a page turn it */
+  stage.addEventListener('click', function(e){
+    var g = e.target.closest('[data-goto]');
+    if(g){ e.preventDefault(); self.goTo(Number(g.dataset.goto) - 1); return; }
+    if(e.target.closest('a,button,label,input,.fbv-nav')) return;
+    var r = book.getBoundingClientRect();
+    if(e.clientX > r.right - r.width * .18 && e.clientX <= r.right) go(1);
+    else if(e.clientX < r.left + r.width * .18 && e.clientX >= r.left) go(-1);
+  });
+  var sx = null, sy = null;
+  stage.addEventListener('pointerdown', function(e){ if(e.target.closest('label,a,button')) return; sx = e.clientX; sy = e.clientY; });
+  stage.addEventListener('pointerup', function(e){
+    if(sx == null) return;
+    var dx = e.clientX - sx, dy = e.clientY - sy; sx = null;
+    if(Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.3) go(dx < 0 ? 1 : -1);
+  });
+  document.addEventListener('click', function(e){ if(menu && !menu.contains(e.target) && e.target !== bToc) closeMenu(); });
+  var ro = global.ResizeObserver ? new ResizeObserver(function(){ if(!busy) layout(); }) : null;
+  if(ro) ro.observe(stage); else global.addEventListener('resize', layout);
+  if(opts.start) idx = Math.max(0, Math.min(n - 1, opts.start));
+  v.tabIndex = -1;
+  layout();
+  self.focus = function(){ try{ v.focus({preventScroll:true}); }catch(e){ v.focus(); } };
+  self.destroy = function(){ if(ro) ro.disconnect(); root.innerHTML = ''; };
+};
+
+/* ---------- PDF ---------- */
+var LIBS = {
+  h2c:'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+  pdf:'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+};
+function loadScript(src){
+  return new Promise(function(res, rej){
+    var s = document.createElement('script'); s.src = src; s.async = true;
+    s.onload = res; s.onerror = function(){ rej(new Error('Could not load the PDF tools. Check your internet connection and try again.')); };
+    document.head.appendChild(s);
+  });
+}
+FBE.makePdf = function(pub, onProgress){
+  var size = FBE.sizeOf(pub);
+  return Promise.all([
+    global.html2canvas ? null : loadScript(LIBS.h2c),
+    (global.jspdf && global.jspdf.jsPDF) ? null : loadScript(LIBS.pdf)
+  ]).then(function(){ return FBE.prepare(pub); }).then(function(){
+    var pages = FBE.paginate(pub, {print:true});
+    var orient = size.inW > size.inH ? 'l' : 'p';
+    var doc = new global.jspdf.jsPDF({orientation:orient, unit:'pt', format:[size.inW * 72, size.inH * 72], compress:true});
+    var box = document.createElement('div');
+    box.dataset.baseStyle = 'position:fixed;left:-20000px;top:0;pointer-events:none;';
+    FBE.dress(box, pub, 'print');
+    document.body.appendChild(box);
+    var i = 0;
+    function step(){
+      if(i >= pages.length){ box.remove(); return doc.output('blob'); }
+      box.innerHTML = pages[i].html;
+      if(onProgress) onProgress(i + 1, pages.length);
+      return global.html2canvas(box.firstChild, {scale:2.2, backgroundColor:null, useCORS:true, logging:false}).then(function(cv){
+        if(i > 0) doc.addPage([size.inW * 72, size.inH * 72], orient);
+        doc.addImage(cv.toDataURL('image/jpeg', .9), 'JPEG', 0, 0, size.inW * 72, size.inH * 72, undefined, 'FAST');
+        /* keep links clickable in the PDF */
+        var pr = box.firstChild.getBoundingClientRect(), k = (size.inW * 72) / pr.width;
+        box.querySelectorAll('a[href^="http"]').forEach(function(a){
+          var r = a.getBoundingClientRect();
+          try{ doc.link((r.left - pr.left) * k, (r.top - pr.top) * k, r.width * k, r.height * k, {url:a.href}); }catch(e){}
+        });
+        i++;
+        return step();
+      });
+    }
+    return step();
+  });
+};
+
+FBE.slug = function(x){ return String(x || '').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,50) || 'book'; };
+global.FBE = FBE;
+})(window);
+</script>
+<script>
+/* ===== Starter templates ===== */
+(function(global){
+'use strict';
+function P(text){ return {type:'paragraph', text:text}; }
+function Hd(text){ return {type:'heading', text:text}; }
+
+var TEMPLATES = {
+  guide:{
+    label:'Parent rights guide',
+    blurb:'A short guide with chapters, rights boxes, key deadlines and myth-or-fact cards.',
+    make:function(){ return {
+      title:'Your Rights at IEP Time',
+      settings:{size:'letter', theme:'advocate', fonts:'classic', toc:true, pageNumbers:true},
+      cover:{style:'bold', badge:'Free parent guide', subtitle:'Records, discipline and changing schools: what federal special education law requires, in plain language.', author:'Devon Hynson Educates'},
+      chapters:[
+        {title:'Before the meeting', blocks:[
+          P('The most useful thing you can bring to an IEP meeting is information you have already read. The law gives you the right to see your child’s education records first, and it puts a clock on the school.'),
+          {type:'callout', tone:'rights', title:'You can see the records before the meeting', text:'The school must let you inspect and review your child’s education records without unnecessary delay, before any IEP meeting or hearing, and never more than **45 days** after you ask.', cite:'34 CFR 300.613(a)'},
+          Hd('How to ask'),
+          {type:'list', style:'number', text:'Ask in writing and keep a copy.\nName the records you want: evaluations, progress reports, discipline records and service logs.\nWrite down the date you sent the request.\nAsk for an explanation of anything you do not understand.'},
+          P('You also have the right to take part in the meeting. The school must schedule it at a mutually agreed time and place, and tell you early enough that you can arrange to attend (34 CFR 300.322).'),
+          {type:'keynum', value:'45', unit:'calendar days', text:'The longest a school can take to let you review records after you ask, and it must be sooner if a meeting comes first.', cite:'34 CFR 300.613(a)'}
+        ]},
+        {title:'When discipline comes up', blocks:[
+          P('Students with IEPs can be disciplined, but the law adds protections when a removal becomes long enough to change the student’s placement.'),
+          {type:'callout', tone:'info', title:'What counts as a change of placement', text:'A removal of more than 10 school days in a row is a change of placement. A series of shorter removals can also be one when they add up to more than 10 days and form a pattern.', cite:'34 CFR 300.536'},
+          {type:'keynum', value:'10', unit:'school days', text:'The school must hold a manifestation determination review within 10 school days of any decision to change placement for discipline.', cite:'34 CFR 300.530(e)'},
+          Hd('The two questions the review must answer'),
+          {type:'list', style:'number', text:'Was the behavior caused by, or directly and substantially related to, the child’s disability?\nWas the behavior the direct result of the school’s failure to carry out the IEP?'},
+          P('If the answer to either question is yes, the behavior is a manifestation of the disability, and the team must take specific steps, including reviewing or creating a behavior plan.'),
+          {type:'flip', title:'Myth or fact?', frontLabel:'Myth', backLabel:'Fact', cards:[
+            {f:'If the behavior is serious enough, a school can remove a student with an IEP without any review.', b:'Weapons, drugs and serious bodily injury allow a removal of up to 45 school days, but the school still has to hold the manifestation determination review.', cite:'34 CFR 300.530(e), (g)'},
+            {f:'Only the school can decide whether my child gets evaluated for special education.', b:'A parent can request an initial evaluation. If the school refuses, it must give you prior written notice explaining why.', cite:'34 CFR 300.301(b) and 300.503'}
+          ]}
+        ]},
+        {title:'Changing schools', blocks:[
+          P('An IEP does not disappear when a family moves. The new school has duties that start the day your child enrolls.'),
+          {type:'callout', tone:'rights', title:'Moving within the same state', text:'The new school must provide a free appropriate public education, including services comparable to the old IEP, until it adopts the old IEP or develops a new one.', cite:'34 CFR 300.323(e)'},
+          {type:'callout', tone:'rights', title:'Moving from another state', text:'The new school must provide services comparable to the old IEP until it conducts an evaluation, if it decides one is needed, and develops a new IEP if appropriate.', cite:'34 CFR 300.323(f)'},
+          P('The new school must take reasonable steps to promptly get your child’s records, and the old school must promptly send them (34 CFR 300.323(g)). Bring your own copy of the IEP to enrollment anyway.'),
+          {type:'quote', text:'The child’s rights travel with the child.', by:'The rule to remember at every new school'}
+        ]}
+      ],
+      back:{heading:'Need help before your next meeting?', text:'This guide explains federal rules in plain language. It is general information, not legal advice for your situation.', button:'Visit our website', url:'https://studentadvocacycenter.com', contact:'Student Advocacy Center'}
+    }; }
+  },
+  newsletter:{
+    label:'Newsletter issue',
+    blurb:'One issue as a page-turning magazine: a lead story, a rights tip, a key deadline and quick links.',
+    make:function(){ return {
+      title:'Issue 1: The 10-Day Rule',
+      settings:{size:'trade', theme:'advocate', fonts:'classic', toc:false, pageNumbers:true},
+      cover:{style:'bold', badge:'Newsletter · Issue 1', subtitle:'Suspended? The 10-day rule every parent of a student with an IEP should know.', author:'Devon Hynson Educates'},
+      chapters:[
+        {title:'This issue', kicker:'From the desk', blocks:[
+          P('When a school decides to change a student’s placement for discipline, the law requires a review meeting first. Here is what that meeting is, when it has to happen, and what to bring.'),
+          {type:'keynum', value:'10', unit:'school days', text:'to hold a manifestation determination review after a decision to change placement for discipline.', cite:'34 CFR 300.530(e)'},
+          Hd('What the review is, and what it isn’t'),
+          P('The review asks two questions: was the behavior caused by, or directly and substantially related to, the disability? And was it the direct result of the school not following the IEP? If either answer is yes, the school must take specific steps before any long-term removal.'),
+          {type:'callout', tone:'rights', title:'You can see your child’s records before the meeting', text:'Schools must let parents inspect records without unnecessary delay, before any IEP meeting or hearing, and never more than 45 days after the request.', cite:'34 CFR 300.613'},
+          {type:'flip', title:'Myth or fact?', frontLabel:'Myth', backLabel:'Fact', cards:[
+            {f:'A suspension of a few days at a time can never add up to a change of placement.', b:'A series of removals that totals more than 10 school days and forms a pattern can be a change of placement.', cite:'34 CFR 300.536(a)(2)'}
+          ]},
+          Hd('Quick links'),
+          {type:'button', text:'Free letter: request your child’s records', url:'https://devonhynson.com'},
+          {type:'button', text:'Listen to the Pragmatic Podcast', url:'https://devonhynson.com'}
+        ]}
+      ],
+      back:{heading:'Facing a school problem right now?', text:'The Student Advocacy Center helps families with IEPs, 504 plans, discipline and records.', button:'Get advocacy help', url:'https://studentadvocacycenter.com', contact:'You are receiving this because you signed up at Devon Hynson Educates.'}
+    }; }
+  },
+  blank:{
+    label:'Blank book',
+    blurb:'A cover, one empty chapter and a back cover. Start from scratch or paste your writing in.',
+    make:function(){ return {
+      title:'Untitled book',
+      settings:{size:'letter', theme:'advocate', fonts:'classic', toc:true, pageNumbers:true},
+      cover:{style:'bold', badge:'', subtitle:'', author:''},
+      chapters:[{title:'Chapter one', blocks:[P('')]}],
+      back:{heading:'', text:'', button:'', url:'', contact:''}
+    }; }
+  }
+};
+
+/* Turns pasted text or Markdown into chapters and blocks. */
+function fromText(text, fallbackTitle){
+  var lines = String(text || '').replace(/\r/g, '').split('\n');
+  var book = {title:'', chapters:[]};
+  var ch = null, para = [], list = null;
+  function chapter(title){ ch = {title:title, blocks:[]}; book.chapters.push(ch); }
+  function ensure(){ if(!ch) chapter('Chapter one'); }
+  function flush(){
+    if(para.length){ ensure(); ch.blocks.push({type:'paragraph', text:para.join(' ')}); para = []; }
+    if(list){ ensure(); ch.blocks.push({type:'list', style:list.style, text:list.items.join('\n')}); list = null; }
+  }
+  lines.forEach(function(raw){
+    var l = raw.trim(), m;
+    if(!l){ flush(); return; }
+    if((m = l.match(/^#\s+(.+)/))){ flush(); if(!book.title && !book.chapters.length && !ch){ /* first H1 with nothing before it is the book title only if a second H1 exists later */ } chapter(m[1]); return; }
+    if((m = l.match(/^#{2,6}\s+(.+)/))){ flush(); ensure(); ch.blocks.push({type:'heading', text:m[1]}); return; }
+    if((m = l.match(/^>\s?(.*)/))){ flush(); ensure(); ch.blocks.push({type:'quote', text:m[1]}); return; }
+    if(/^(-{3,}|\*{3,})$/.test(l)){ flush(); ensure(); ch.blocks.push({type:'divider'}); return; }
+    if((m = l.match(/^!\[([^\]]*)\]\((https:\/\/[^)\s]+)\)/))){ flush(); ensure(); ch.blocks.push({type:'image', src:m[2], caption:m[1], width:'full'}); return; }
+    if((m = l.match(/^[-*•]\s+(.+)/))){ if(para.length) { var keep = list; list = null; flush(); list = keep; } if(!list || list.style !== 'bullet'){ if(list) flush(); list = {style:'bullet', items:[]}; } list.items.push(m[1]); return; }
+    if((m = l.match(/^\d+[.)]\s+(.+)/))){ if(para.length) { var keep2 = list; list = null; flush(); list = keep2; } if(!list || list.style !== 'number'){ if(list) flush(); list = {style:'number', items:[]}; } list.items.push(m[1]); return; }
+    if(list) flush();
+    para.push(l);
+  });
+  flush();
+  /* a lone first "# Title" followed by more chapters becomes the book title */
+  if(book.chapters.length > 1 && !book.chapters[0].blocks.length){ book.title = book.chapters.shift().title; }
+  if(book.chapters.length === 1 && !book.title){ book.title = book.chapters[0].title === 'Chapter one' ? (fallbackTitle || 'Untitled book') : book.chapters[0].title; }
+  if(!book.title) book.title = fallbackTitle || 'Untitled book';
+  if(!book.chapters.length) book.chapters.push({title:'Chapter one', blocks:[{type:'paragraph', text:''}]});
+  return book;
+}
+
+/* Turns HTML (from a Word file) into chapters and blocks. */
+function fromHtml(html, fallbackTitle){
+  var doc = new DOMParser().parseFromString('<div>' + html + '</div>', 'text/html');
+  var root = doc.body.firstChild;
+  var book = {title:'', chapters:[]}, ch = null, pending = [];
+  var hasH1 = !!root.querySelector('h1');
+  var chapTag = hasH1 ? 'H1' : (root.querySelector('h2') ? 'H2' : null);
+  function md(node){
+    var out = '';
+    node.childNodes.forEach(function(c){
+      if(c.nodeType === 3){ out += c.nodeValue; return; }
+      if(c.nodeType !== 1) return;
+      var inner = md(c);
+      if(c.tagName === 'STRONG' || c.tagName === 'B') out += inner.trim() ? '**' + inner.trim() + '** ' : '';
+      else if(c.tagName === 'EM' || c.tagName === 'I') out += inner.trim() ? '*' + inner.trim() + '* ' : '';
+      else if(c.tagName === 'A' && /^https?:/i.test(c.getAttribute('href') || '')) out += '[' + inner.trim() + '](' + c.getAttribute('href') + ') ';
+      else if(c.tagName === 'BR') out += '\n';
+      else out += inner;
+    });
+    return out.replace(/[ \t]+/g, ' ');
+  }
+  function ensure(){ if(!ch){ ch = {title:'Chapter one', blocks:[]}; book.chapters.push(ch); } }
+  function push(b){ ensure(); ch.blocks.push(b); }
+  Array.prototype.forEach.call(root.children, function(n){
+    var tag = n.tagName, txt = md(n).trim();
+    if(tag === chapTag){ if(txt){ ch = {title:txt, blocks:[]}; book.chapters.push(ch); } return; }
+    if(/^H[1-6]$/.test(tag)){ if(txt) push({type:'heading', text:txt}); return; }
+    if(tag === 'UL' || tag === 'OL'){
+      var items = Array.prototype.map.call(n.querySelectorAll(':scope > li'), function(li){ return md(li).trim(); }).filter(Boolean);
+      if(items.length) push({type:'list', style:tag === 'OL' ? 'number' : 'bullet', text:items.join('\n')});
+      return;
+    }
+    if(tag === 'BLOCKQUOTE'){ if(txt) push({type:'quote', text:txt}); return; }
+    if(tag === 'TABLE'){
+      Array.prototype.forEach.call(n.querySelectorAll('tr'), function(tr){
+        var cells = Array.prototype.map.call(tr.children, function(td){ return md(td).trim(); }).filter(Boolean);
+        if(cells.length) push({type:'paragraph', text:cells.join(' · ')});
+      });
+      return;
+    }
+    var imgs = n.querySelectorAll('img');
+    imgs.forEach(function(im){ var src = im.getAttribute('src') || ''; if(/^data:image\//.test(src)) pending.push({ref:push({type:'image', src:src, width:'full', caption:im.getAttribute('alt') || ''}) }); });
+    if(txt) push({type:'paragraph', text:txt});
+  });
+  if(book.chapters.length > 1 && !book.chapters[0].blocks.length) book.title = book.chapters.shift().title;
+  book.title = book.title || (book.chapters.length === 1 && book.chapters[0].title !== 'Chapter one' ? book.chapters[0].title : (fallbackTitle || 'Untitled book'));
+  if(!book.chapters.length) book.chapters.push({title:'Chapter one', blocks:[{type:'paragraph', text:''}]});
+  return book;
+}
+
+global.FBT = {TEMPLATES:TEMPLATES, fromText:fromText, fromHtml:fromHtml};
+})(window);
+</script>
+<script>
+/* ===== Flipbook Studio ===== */
+(function(){
+'use strict';
+var FBE = window.FBE, FBT = window.FBT;
+var $ = function(id){ return document.getElementById(id); };
+function t(s){ return String(s == null ? '' : s).trim(); }
+function esc(s){ return FBE.esc(s); }
+function uid(){ return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); }
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function h(tag, attrs, kids){
+  var e = document.createElement(tag);
+  if(attrs) Object.keys(attrs).forEach(function(k){
+    var v = attrs[k];
+    if(v == null || v === false) return;
+    if(k === 'text') e.textContent = v;
+    else if(k === 'html') e.innerHTML = v;
+    else if(k === 'class') e.className = v;
+    else if(k.slice(0, 2) === 'on') e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? '' : v);
+  });
+  (kids || []).forEach(function(c){ if(c != null) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+  return e;
+}
+
+/* ---------- storage: IndexedDB in this browser, with a memory fallback ---------- */
+var store = (function(){
+  var mem = {}, db = null, ok = false;
+  function open(){
+    return new Promise(function(res){
+      try{
+        var rq = indexedDB.open('flipbook-studio', 1);
+        rq.onupgradeneeded = function(){ rq.result.createObjectStore('books', {keyPath:'id'}); };
+        rq.onsuccess = function(){ db = rq.result; ok = true; res(true); };
+        rq.onerror = function(){ res(false); };
+        setTimeout(function(){ res(ok); }, 3000);
+      }catch(e){ res(false); }
+    });
+  }
+  function tx(mode){ return db.transaction('books', mode).objectStore('books'); }
+  return {
+    open:open,
+    get ok(){ return ok; },
+    all:function(){
+      if(!ok) return Promise.resolve(Object.keys(mem).map(function(k){ return clone(mem[k]); }));
+      return new Promise(function(res){ try{ var r = tx('readonly').getAll(); r.onsuccess = function(){ res(r.result || []); }; r.onerror = function(){ res([]); }; }catch(e){ res([]); } });
+    },
+    put:function(b){
+      mem[b.id] = clone(b);
+      if(!ok) return Promise.resolve(false);
+      return new Promise(function(res){ try{ var r = tx('readwrite').put(b); r.onsuccess = function(){ res(true); }; r.onerror = function(){ res(false); }; }catch(e){ res(false); } });
+    },
+    del:function(id){
+      delete mem[id];
+      if(!ok) return Promise.resolve();
+      return new Promise(function(res){ try{ var r = tx('readwrite').delete(id); r.onsuccess = r.onerror = function(){ res(); }; }catch(e){ res(); } });
+    }
+  };
+})();
+
+/* ---------- saving files: Claude's save prompt when available, a normal download otherwise ---------- */
+var downloads = null, inClaude = !!(window.claude && typeof window.claude.use === 'function');
+if(inClaude){ window.claude.use('downloads').then(function(d){ downloads = d; }).catch(function(){}); }
+function saveFile(name, data, mime){
+  if(downloads){
+    return downloads.save({filename:name, data:data}).then(function(){ toast('Saved ' + name); return true; }).catch(function(e){
+      if(e && e.code === 'declined') return false;
+      toast(e && e.code === 'too_large' ? 'That file is too large to save here.' : 'Could not save the file here.');
+      return false;
+    });
+  }
+  try{
+    var blob = data instanceof Blob ? data : new Blob([data], {type:mime || 'application/octet-stream'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+    toast('Downloading ' + name);
+    return Promise.resolve(true);
+  }catch(e){ toast('Could not save the file in this browser.'); return Promise.resolve(false); }
+}
+function copy(text, el){
+  try{
+    navigator.clipboard.writeText(text).then(function(){ toast('Copied'); }, function(){ sel(el); });
+  }catch(e){ sel(el); }
+  function sel(node){ if(!node) return; var r = document.createRange(); r.selectNodeContents(node); var s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('Selected. Press Ctrl+C or Cmd+C to copy.'); }
+}
+function toast(msg){
+  var el = $('toast'); el.textContent = msg; el.hidden = false;
+  clearTimeout(toast._t); toast._t = setTimeout(function(){ el.hidden = true; }, 2600);
+}
+
+/* ---------- book model ---------- */
+function normalize(b){
+  b = b || {};
+  b.id = b.id || uid();
+  b.title = b.title == null ? 'Untitled book' : String(b.title);
+  b.settings = Object.assign({size:'letter', theme:'advocate', fonts:'classic', toc:true, pageNumbers:true, colors:{}}, b.settings || {});
+  b.settings.colors = b.settings.colors || {};
+  b.cover = Object.assign({style:'bold', badge:'', subtitle:'', author:'', image:''}, b.cover || {});
+  b.back = Object.assign({heading:'', text:'', button:'', url:'', contact:''}, b.back || {});
+  b.chapters = (Array.isArray(b.chapters) ? b.chapters : []).map(function(c){
+    return {id:c.id || uid(), title:String(c.title || ''), kicker:String(c.kicker || ''), blocks:(Array.isArray(c.blocks) ? c.blocks : []).map(function(x){ var y = Object.assign({}, x); y.id = y.id || uid(); if(y.type === 'flip') y.cards = (y.cards || []).map(function(c){ return {f:c.f || '', b:c.b || '', cite:c.cite || ''}; }); return y; })};
+  });
+  if(!b.chapters.length) b.chapters.push({id:uid(), title:'Chapter one', kicker:'', blocks:[{id:uid(), type:'paragraph', text:''}]});
+  b.publish = Object.assign({url:''}, b.publish || {});
+  b.updated = b.updated || Date.now();
+  b.created = b.created || Date.now();
+  return b;
+}
+var NEW_BLOCK = {
+  heading:function(){ return {type:'heading', text:''}; },
+  paragraph:function(){ return {type:'paragraph', text:''}; },
+  list:function(){ return {type:'list', style:'bullet', text:''}; },
+  quote:function(){ return {type:'quote', text:'', by:''}; },
+  callout:function(){ return {type:'callout', tone:'rights', title:'', text:'', cite:''}; },
+  keynum:function(){ return {type:'keynum', value:'', unit:'', text:'', cite:''}; },
+  flip:function(){ return {type:'flip', title:'Myth or fact?', frontLabel:'Myth', backLabel:'Fact', cards:[{f:'', b:'', cite:''}]}; },
+  image:function(){ return {type:'image', src:'', caption:'', alt:'', width:'full'}; },
+  button:function(){ return {type:'button', text:'', url:''}; },
+  divider:function(){ return {type:'divider'}; },
+  pagebreak:function(){ return {type:'pagebreak'}; }
+};
+
+/* ---------- app state ---------- */
+var books = [], cur = null, section = 'cover', pages = [];
+
+function saveSoon(){
+  if(!cur) return;
+  cur.updated = Date.now();
+  $('saved').textContent = 'Saving…';
+  clearTimeout(saveSoon._t);
+  saveSoon._t = setTimeout(function(){
+    store.put(cur).then(function(ok){ $('saved').textContent = ok ? 'Saved' : 'Not saved in this browser'; });
+  }, 500);
+  previewSoon();
+}
+function changed(){ saveSoon(); }
+
+/* ---------- thumbnails ---------- */
+function thumb(book, html, width){
+  var sz = FBE.sizeOf(book), k = width / sz.w;
+  var box = h('div', {class:'thumb'});
+  box.style.width = width + 'px'; box.style.height = Math.round(sz.h * k) + 'px';
+  var d = h('div');
+  FBE.dress(d, book);
+  d.innerHTML = html;
+  d.firstChild.style.transform = 'scale(' + k + ')';
+  d.firstChild.style.transformOrigin = '0 0';
+  box.appendChild(d);
+  return box;
+}
+
+/* ---------- views ---------- */
+function show(view){
+  $('viewLib').hidden = view !== 'lib';
+  $('viewEd').hidden = view !== 'ed';
+  $('libActs').hidden = view !== 'lib';
+  $('edActs').hidden = view !== 'ed';
+  $('crumb').hidden = view !== 'ed';
+  window.scrollTo(0, 0);
+}
+function renderLib(){
+  show('lib'); cur = null;
+  var shelf = $('shelf'); shelf.innerHTML = '';
+  var list = books.slice().sort(function(a, b){ return b.updated - a.updated; });
+  if(!list.length){
+    shelf.appendChild(h('div', {class:'empty-shelf'}, [
+      h('p', {style:'margin:0 0 12px;font-weight:700;color:var(--ink)', text:'No books yet'}),
+      h('p', {style:'margin:0 0 14px', text:'Start from a template, or import a Word file or your writing.'}),
+      h('button', {class:'btn btn-primary', type:'button', text:'New book', onclick:openNew})
+    ]));
+    return;
+  }
+  var w = Math.min(230, Math.max(150, Math.floor((Math.min(window.innerWidth, 1500) - 80) / 5)));
+  list.forEach(function(b){
+    var cover = h('button', {class:'bk-cover', type:'button', 'aria-label':'Open ' + (t(b.title) || 'Untitled book')});
+    cover.appendChild(thumb(b, FBE.coverHtml(b), 210));
+    cover.addEventListener('click', function(){ openBook(b.id); });
+    var del = h('button', {class:'btn btn-ghost btn-sm', type:'button', text:'Delete'});
+    del.addEventListener('click', function(){
+      confirmBtn(del, 'Delete', function(){ store.del(b.id).then(function(){ books = books.filter(function(x){ return x.id !== b.id; }); renderLib(); toast('Book deleted'); }); });
+    });
+    var sz = FBE.sizeOf(b);
+    shelf.appendChild(h('article', {class:'bk'}, [
+      cover,
+      h('div', {class:'bk-meta'}, [h('span', {class:'bk-title', text:t(b.title) || 'Untitled book'}), h('span', {class:'bk-sub', text:b.chapters.length + (b.chapters.length === 1 ? ' chapter · ' : ' chapters · ') + sz.label.split(',')[0] + ' · ' + new Date(b.updated).toLocaleDateString(undefined, {month:'short', day:'numeric'})})]),
+      h('div', {class:'bk-tools'}, [
+        h('button', {class:'btn btn-ghost btn-sm', type:'button', text:'Open', onclick:function(){ openBook(b.id); }}),
+        h('button', {class:'btn btn-ghost btn-sm', type:'button', text:'Duplicate', onclick:function(){ var c = normalize(clone(b)); c.id = uid(); c.title = t(b.title) + ' (copy)'; c.updated = Date.now(); store.put(c).then(function(){ books.push(c); renderLib(); toast('Copy made'); }); }}),
+        del
+      ])
+    ]));
+  });
+}
+function confirmBtn(btn, label, action){
+  if(btn.dataset.armed){ delete btn.dataset.armed; btn.textContent = label; action(); return; }
+  btn.dataset.armed = '1'; btn.textContent = 'Click again to confirm';
+  setTimeout(function(){ if(btn.dataset.armed){ delete btn.dataset.armed; btn.textContent = label; } }, 3200);
+}
+
+/* ---------- dialogs ---------- */
+function modal(title, body, opts){
+  opts = opts || {};
+  var layer = $('layer');
+  var back = h('div', {class:'ov'});
+  var closeBtn = h('button', {class:'btn btn-ghost', type:'button', text:'Close'});
+  var dlg = h('div', {class:'dlg', role:'dialog', 'aria-modal':'true', 'aria-label':title}, [
+    h('div', {class:'dlg-head'}, [h('h2', {text:title}), closeBtn]),
+    h('div', {class:'dlg-body'}, [body])
+  ]);
+  if(opts.wide) dlg.style.width = 'min(980px,100%)';
+  back.appendChild(dlg); layer.appendChild(back);
+  var prevFocus = document.activeElement;
+  function close(){ back.remove(); document.removeEventListener('keydown', key); if(prevFocus && prevFocus.focus) prevFocus.focus(); }
+  function key(e){ if(e.key === 'Escape') close(); }
+  closeBtn.addEventListener('click', close);
+  back.addEventListener('click', function(e){ if(e.target === back) close(); });
+  document.addEventListener('keydown', key);
+  setTimeout(function(){ var f = dlg.querySelector('button.tpl, input, textarea, .dlg-body button') || closeBtn; f.focus(); }, 20);
+  return {close:close, el:dlg};
+}
+function openNew(){
+  var grid = h('div', {class:'tpl-grid'});
+  var m;
+  Object.keys(FBT.TEMPLATES).forEach(function(k){
+    var tp = FBT.TEMPLATES[k];
+    var sample = normalize(tp.make());
+    var b = h('button', {class:'tpl', type:'button'}, [
+      thumb(sample, FBE.coverHtml(sample), 200),
+      h('span', {class:'nm', text:tp.label}),
+      k !== 'blank' ? h('span', {class:'ex', text:'Example content'}) : null,
+      h('span', {class:'bl', text:tp.blurb})
+    ]);
+    b.addEventListener('click', function(){ m.close(); create(sample); });
+    grid.appendChild(b);
+  });
+  m = modal('Start a new book', h('div', {}, [h('p', {class:'help', style:'margin-bottom:12px', text:'Pick a starting point. You can change the size, colors and fonts any time.'}), grid]), {wide:true});
+}
+function create(book){
+  book = normalize(book); book.id = uid(); book.created = book.updated = Date.now();
+  books.push(book);
+  store.put(book).then(function(){ openBook(book.id); });
+}
+
+/* ---------- import ---------- */
+var MAMMOTH = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
+function loadScript(src){ return new Promise(function(res, rej){ var s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = function(){ rej(new Error('load')); }; document.head.appendChild(s); }); }
+function openImport(){
+  var ta = h('textarea', {id:'importText', class:'big', rows:'8', placeholder:'# Book title\n\n# First chapter\nYour writing here. Blank lines start new paragraphs.\n\n## A subheading\n- a list item'});
+  var zone = h('div', {class:'drop-zone'}, [
+    h('strong', {style:'color:var(--ink)', text:'Drop a file here'}),
+    h('span', {text:'Word (.docx), Markdown (.md), text (.txt), or a Flipbook Studio backup (.json)'}),
+    h('button', {class:'btn btn-line', type:'button', text:'Choose a file', onclick:function(){ pick('.docx,.md,.markdown,.txt,.json', handleFile); }})
+  ]);
+  zone.addEventListener('dragover', function(e){ e.preventDefault(); zone.classList.add('over'); });
+  zone.addEventListener('dragleave', function(){ zone.classList.remove('over'); });
+  zone.addEventListener('drop', function(e){ e.preventDefault(); zone.classList.remove('over'); var f = e.dataTransfer.files && e.dataTransfer.files[0]; if(f) handleFile(f); });
+  var status = h('p', {class:'prog', 'aria-live':'polite'});
+  var m = modal('Import your writing', h('div', {style:'display:flex;flex-direction:column;gap:14px'}, [
+    zone,
+    h('label', {class:'f', for:'importText'}, ['Or paste an article, a transcript or notes', h('span', {class:'hint', text:'Lines starting with # become chapters, ## become subheadings, and - become lists.'})]),
+    ta,
+    h('div', {style:'display:flex;gap:8px;align-items:center;flex-wrap:wrap'}, [
+      h('button', {class:'btn btn-primary', type:'button', text:'Make a book from this text', onclick:function(){
+        if(!t(ta.value)){ status.textContent = 'Paste some text first.'; ta.focus(); return; }
+        m.close(); create(withDefaults(FBT.fromText(ta.value, 'Untitled book')));
+      }}),
+      status
+    ])
+  ]));
+  function handleFile(file){
+    var name = file.name.replace(/\.[^.]+$/, '');
+    var ext = (file.name.split('.').pop() || '').toLowerCase();
+    status.textContent = 'Reading ' + file.name + '…';
+    if(ext === 'json'){
+      file.text().then(function(txt){
+        var data = JSON.parse(txt);
+        var list = Array.isArray(data.books) ? data.books : [data];
+        var n = 0;
+        list.forEach(function(b){ if(b && b.chapters){ var nb = normalize(b); nb.id = uid(); books.push(nb); store.put(nb); n++; } });
+        if(!n) throw new Error('none');
+        m.close(); renderLib(); toast(n === 1 ? 'Book imported' : n + ' books imported');
+      }).catch(function(){ status.textContent = 'That file is not a Flipbook Studio backup.'; });
+      return;
+    }
+    if(ext === 'docx'){
+      var ready = window.mammoth ? Promise.resolve() : loadScript(MAMMOTH);
+      ready.then(function(){ return file.arrayBuffer(); }).then(function(buf){ return window.mammoth.convertToHtml({arrayBuffer:buf}); }).then(function(r){
+        var book = withDefaults(FBT.fromHtml(r.value, name));
+        status.textContent = 'Preparing images…';
+        return shrinkImages(book).then(function(){ m.close(); create(book); });
+      }).catch(function(){ status.textContent = 'Could not read that Word file. Try saving it again as .docx, or paste the text instead.'; });
+      return;
+    }
+    if(ext === 'md' || ext === 'markdown' || ext === 'txt'){
+      file.text().then(function(txt){ m.close(); create(withDefaults(FBT.fromText(txt, name))); });
+      return;
+    }
+    status.textContent = 'That file type is not supported. Use .docx, .md, .txt or .json.';
+  }
+}
+function withDefaults(b){
+  b.settings = {size:'letter', theme:'advocate', fonts:'classic', toc:true, pageNumbers:true};
+  b.cover = {style:'bold', badge:'', subtitle:'', author:''};
+  b.back = {heading:'', text:'', button:'', url:'', contact:''};
+  return b;
+}
+function pick(accept, cb){
+  var inp = $('filePick'); inp.value = ''; inp.accept = accept;
+  inp.onchange = function(){ var f = inp.files && inp.files[0]; if(f) cb(f); };
+  inp.click();
+}
+
+/* ---------- images ---------- */
+function shrink(src, max){
+  return new Promise(function(res){
+    var im = new Image();
+    im.onload = function(){
+      var w = im.naturalWidth, hh = im.naturalHeight, k = Math.min(1, max / Math.max(w, hh));
+      var cv = document.createElement('canvas'); cv.width = Math.round(w * k); cv.height = Math.round(hh * k);
+      var x = cv.getContext('2d');
+      x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, cv.width, cv.height);
+      x.drawImage(im, 0, 0, cv.width, cv.height);
+      var out = cv.toDataURL('image/jpeg', .84);
+      res({src:out.length < src.length || k < 1 ? out : src, w:cv.width, h:cv.height});
+    };
+    im.onerror = function(){ res(null); };
+    im.src = src;
+  });
+}
+function readImage(file){
+  return new Promise(function(res){
+    if(!/^image\//.test(file.type)){ toast('Choose an image file (JPG, PNG, WebP or GIF).'); res(null); return; }
+    var fr = new FileReader();
+    fr.onload = function(){ shrink(fr.result, 1600).then(res); };
+    fr.onerror = function(){ res(null); };
+    fr.readAsDataURL(file);
+  });
+}
+function shrinkImages(book){
+  var jobs = [];
+  book.chapters.forEach(function(c){ (c.blocks || []).forEach(function(b){
+    if(b.type === 'image' && /^data:/.test(b.src || '')) jobs.push(shrink(b.src, 1600).then(function(r){ if(r){ b.src = r.src; b.w = r.w; b.h = r.h; } }));
+  }); });
+  return Promise.all(jobs);
+}
+
+/* ---------- editor ---------- */
+function openBook(id){
+  cur = books.filter(function(b){ return b.id === id; })[0];
+  if(!cur) return renderLib();
+  section = 'cover';
+  show('ed');
+  $('bookTitle').value = cur.title;
+  $('saved').textContent = store.ok ? 'Saved' : 'Not saved in this browser';
+  renderSide(); renderSection(); preview(true);
+}
+function chapterById(id){ return cur.chapters.filter(function(c){ return c.id === id; })[0]; }
+function renderSide(){
+  var side = $('side'); side.innerHTML = '';
+  var ol = h('ul', {class:'outline'});
+  function item(key, num, name, extra){
+    var li = h('li', {class:'ol-item' + (section === key ? ' on' : '')});
+    var go = h('button', {class:'go', type:'button', 'aria-current':section === key ? 'true' : null}, [h('span', {class:'num', text:num}), h('span', {class:'nm', text:name}), h('span', {class:'pgs', 'data-pages':key})]);
+    go.addEventListener('click', function(){ section = key; renderSide(); renderSection(); renderPreviewPages(); if(window.innerWidth < 820) $('col').scrollIntoView({behavior:'smooth', block:'start'}); });
+    li.appendChild(go);
+    if(extra) li.appendChild(extra);
+    ol.appendChild(li);
+  }
+  side.appendChild(h('h2', {text:'Book'}));
+  item('cover', '', 'Cover');
+  cur.chapters.forEach(function(ch, i){
+    var mini = h('div', {class:'mini'}, [
+      h('button', {type:'button', 'aria-label':'Move chapter ' + (i + 1) + ' up', disabled:i === 0, html:'&#8593;', onclick:function(){ move(cur.chapters, i, -1); renderSide(); changed(); }}),
+      h('button', {type:'button', 'aria-label':'Move chapter ' + (i + 1) + ' down', disabled:i === cur.chapters.length - 1, html:'&#8595;', onclick:function(){ move(cur.chapters, i, 1); renderSide(); changed(); }})
+    ]);
+    item(ch.id, String(i + 1).padStart(2, '0'), t(ch.title) || 'Untitled chapter', mini);
+  });
+  item('back', '', 'Back cover');
+  side.appendChild(ol);
+  side.appendChild(h('button', {class:'btn btn-line btn-sm', type:'button', text:'+ Add chapter', onclick:function(){
+    var c = {id:uid(), title:'New chapter', kicker:'', blocks:[{id:uid(), type:'paragraph', text:''}]};
+    var at = cur.chapters.indexOf(chapterById(section));
+    if(at < 0) cur.chapters.push(c); else cur.chapters.splice(at + 1, 0, c);
+    section = c.id; renderSide(); renderSection(); changed();
+    var ti = $('chTitle'); if(ti){ ti.focus(); ti.select(); }
+  }}));
+  var dl = h('ul', {class:'outline'});
+  var li = h('li', {class:'ol-item' + (section === 'design' ? ' on' : '')});
+  li.appendChild(h('button', {class:'go', type:'button', onclick:function(){ section = 'design'; renderSide(); renderSection(); renderPreviewPages(); }}, [h('span', {class:'num', text:''}), h('span', {class:'nm', text:'Size, colors and fonts'})]));
+  dl.appendChild(li);
+  side.appendChild(h('h2', {text:'Design', style:'margin-top:6px'}));
+  side.appendChild(dl);
+  side.appendChild(h('button', {class:'btn btn-ghost btn-sm', type:'button', text:'Download backup file', onclick:backup}));
+  markPageCounts();
+}
+function move(arr, i, d){ var j = i + d; if(j < 0 || j >= arr.length) return; var x = arr[i]; arr[i] = arr[j]; arr[j] = x; }
+function field(label, value, onInput, o){
+  o = o || {};
+  var id = 'f-' + (o.id || uid());
+  var input;
+  if(o.type === 'textarea'){ input = h('textarea', {id:id, rows:o.rows || 3, class:o.big ? 'big' : null, placeholder:o.placeholder || null}); input.value = value || ''; }
+  else if(o.type === 'select'){ input = h('select', {id:id}); o.options.forEach(function(op){ var e = h('option', {value:op[0], text:op[1]}); if(op[0] === value) e.selected = true; input.appendChild(e); }); }
+  else { input = h('input', {id:id, type:o.type || 'text', placeholder:o.placeholder || null}); input.value = value || ''; }
+  input.addEventListener(o.type === 'select' ? 'change' : 'input', function(){ onInput(input.value, input); changed(); });
+  var lab = h('label', {class:'f', for:id}, [label, o.hint ? h('span', {class:'hint', text:o.hint}) : null]);
+  var wrap = h('div', {class:'f-wrap', style:'display:flex;flex-direction:column;gap:5px;min-width:0'}, [lab, input]);
+  return wrap;
+}
+var MARKS_HINT = 'Use **bold**, *italic* and [link text](https://...)';
+function renderSection(){
+  var col = $('col'); col.innerHTML = '';
+  if(section === 'cover') return coverEditor(col);
+  if(section === 'back') return backEditor(col);
+  if(section === 'design') return designEditor(col);
+  var ch = chapterById(section);
+  if(!ch){ section = 'cover'; return renderSection(); }
+  chapterEditor(col, ch);
+}
+function head(col, k, title){ col.appendChild(h('div', {class:'sec-head'}, [h('div', {}, [h('div', {class:'k', text:k}), h('h1', {text:title})])])); }
+function coverEditor(col){
+  var c = cur.cover;
+  head(col, 'Page 1', 'Cover');
+  var styleSeg = h('div', {class:'seg', role:'group', 'aria-label':'Cover style'});
+  [['bold','Bold color'],['photo','Full photo'],['minimal','Framed']].forEach(function(s){
+    styleSeg.appendChild(h('button', {type:'button', 'aria-pressed':c.style === s[0] ? 'true' : 'false', text:s[1], onclick:function(){ c.style = s[0]; renderSection(); changed(); }}));
+  });
+  var imgRow = imageField(c.image, function(v){ c.image = v.src; renderSection(); changed(); }, function(){ c.image = ''; renderSection(); changed(); });
+  col.appendChild(h('div', {class:'card'}, [
+    field('Title', cur.title, function(v){ cur.title = v; $('bookTitle').value = v; }, {id:'cvTitle'}),
+    field('Subtitle', c.subtitle, function(v){ c.subtitle = v; }, {type:'textarea', rows:2, id:'cvSub'}),
+    h('div', {class:'row'}, [
+      field('Author or organization', c.author, function(v){ c.author = v; }, {id:'cvAuthor'}),
+      field('Label above the title', c.badge, function(v){ c.badge = v; }, {id:'cvBadge', hint:'For example: Free guide'})
+    ]),
+    h('div', {class:'f'}, ['Cover style', styleSeg]),
+    h('div', {class:'f'}, ['Cover image', h('span', {class:'hint', text:c.style === 'bold' ? 'Used with the Full photo and Framed styles.' : 'A photo or illustration you have the right to use.'}), imgRow])
+  ]));
+}
+function imageField(src, onSet, onClear){
+  var row = h('div', {class:'imgbox'});
+  if(src) row.appendChild(h('img', {src:src, alt:'Current image'}));
+  row.appendChild(h('button', {class:'btn btn-line btn-sm', type:'button', text:src ? 'Replace image' : 'Upload image', onclick:function(){
+    pick('image/*', function(f){ readImage(f).then(function(r){ if(r) onSet(r); }); });
+  }}));
+  if(src) row.appendChild(h('button', {class:'btn btn-ghost btn-sm', type:'button', text:'Remove', onclick:onClear}));
+  return row;
+}
+function backEditor(col){
+  var b = cur.back;
+  head(col, 'Last page', 'Back cover');
+  col.appendChild(h('div', {class:'card'}, [
+    h('p', {class:'help', text:'Leave the heading, text and button empty to end the book without a back cover.'}),
+    field('Heading', b.heading, function(v){ b.heading = v; }, {id:'bcHead'}),
+    field('Message', b.text, function(v){ b.text = v; }, {type:'textarea', id:'bcText', hint:MARKS_HINT}),
+    h('div', {class:'row'}, [
+      field('Button text', b.button, function(v){ b.button = v; }, {id:'bcBtn'}),
+      field('Button link', b.url, function(v){ b.url = v; }, {type:'url', id:'bcUrl', placeholder:'https://'})
+    ]),
+    field('Small print', b.contact, function(v){ b.contact = v; }, {id:'bcContact', hint:'Contact details, a disclaimer or why readers received this'})
+  ]));
+}
+function designEditor(col){
+  var s = cur.settings;
+  head(col, 'Whole book', 'Size, colors and fonts');
+  var sizeSeg = h('div', {class:'seg', role:'group', 'aria-label':'Page size'});
+  Object.keys(FBE.SIZES).forEach(function(k){
+    sizeSeg.appendChild(h('button', {type:'button', 'aria-pressed':s.size === k ? 'true' : 'false', text:FBE.SIZES[k].label, onclick:function(){ s.size = k; renderSection(); changed(); }}));
+  });
+  var sws = h('div', {class:'swatches', role:'group', 'aria-label':'Color theme'});
+  Object.keys(FBE.THEMES).forEach(function(k){
+    var th = FBE.THEMES[k];
+    var b = h('button', {class:'sw', type:'button', 'aria-pressed':s.theme === k && !Object.keys(s.colors).length ? 'true' : 'false'}, [h('i'), th.label]);
+    b.firstChild.style.background = 'linear-gradient(135deg,' + th.c1 + ' 55%,' + th.c2 + ' 55%)';
+    b.addEventListener('click', function(){ s.theme = k; s.colors = {}; renderSection(); changed(); });
+    sws.appendChild(b);
+  });
+  var th = FBE.themeOf(cur);
+  var colors = h('div', {class:'colors'});
+  [['c1','Main'],['c2','Accent'],['paper','Paper'],['ink','Text']].forEach(function(p){
+    var id = 'col-' + p[0];
+    var inp = h('input', {type:'color', id:id, value:th[p[0]]});
+    inp.addEventListener('input', function(){ s.colors[p[0]] = inp.value; changed(); });
+    colors.appendChild(h('label', {for:id}, [inp, p[1]]));
+  });
+  var fonts = field('Fonts', s.fonts, function(v){ s.fonts = v; }, {type:'select', id:'fontPair', options:Object.keys(FBE.FONTS).map(function(k){ return [k, FBE.FONTS[k].label]; })});
+  var toc = h('label', {class:'check'}, [h('input', {type:'checkbox', id:'optToc'}), 'Add a contents page (books with 2 or more chapters)']);
+  toc.firstChild.checked = s.toc !== false;
+  toc.firstChild.addEventListener('change', function(){ s.toc = toc.firstChild.checked; changed(); });
+  var pn = h('label', {class:'check'}, [h('input', {type:'checkbox', id:'optNums'}), 'Show page numbers and the book title in the footer']);
+  pn.firstChild.checked = s.pageNumbers !== false;
+  pn.firstChild.addEventListener('change', function(){ s.pageNumbers = pn.firstChild.checked; changed(); });
+  col.appendChild(h('div', {class:'card'}, [h('div', {class:'f'}, ['Page size', sizeSeg])]));
+  col.appendChild(h('div', {class:'card'}, [h('div', {class:'f'}, ['Color theme', sws]), h('div', {class:'f'}, ['Or set your own colors', colors]), h('p', {class:'help', text:'Text on colored areas switches between light and dark automatically so it stays readable.'})]));
+  col.appendChild(h('div', {class:'card'}, [fonts, toc, pn]));
+}
+function chapterEditor(col, ch){
+  var i = cur.chapters.indexOf(ch);
+  var top = h('div', {class:'sec-head'}, [
+    h('div', {}, [h('div', {class:'k', text:'Chapter ' + (i + 1) + ' of ' + cur.chapters.length}), h('h1', {text:t(ch.title) || 'Untitled chapter'})]),
+    (function(){
+      var del = h('button', {class:'btn btn-danger btn-sm', type:'button', text:'Delete chapter'});
+      del.addEventListener('click', function(){
+        confirmBtn(del, 'Delete chapter', function(){
+          cur.chapters.splice(i, 1);
+          if(!cur.chapters.length) cur.chapters.push({id:uid(), title:'Chapter one', kicker:'', blocks:[{id:uid(), type:'paragraph', text:''}]});
+          section = (cur.chapters[i] || cur.chapters[i - 1] || {}).id || 'cover';
+          renderSide(); renderSection(); changed(); toast('Chapter deleted');
+        });
+      });
+      return del;
+    })()
+  ]);
+  col.appendChild(top);
+  col.appendChild(h('div', {class:'card'}, [
+    h('div', {class:'row'}, [
+      field('Chapter title', ch.title, function(v){ ch.title = v; top.querySelector('h1').textContent = t(v) || 'Untitled chapter'; var nm = document.querySelector('.ol-item.on .nm'); if(nm) nm.textContent = t(v) || 'Untitled chapter'; }, {id:'chTitle'}),
+      field('Label above the title', ch.kicker, function(v){ ch.kicker = v; }, {id:'chKicker', placeholder:'Chapter ' + (i + 1)})
+    ])
+  ]));
+  var list = h('div', {class:'blocks'});
+  ch.blocks.forEach(function(b, bi){ list.appendChild(blockEditor(ch, b, bi)); });
+  col.appendChild(list);
+  col.appendChild(adder(function(type){
+    var nb = NEW_BLOCK[type](); nb.id = uid(); ch.blocks.push(nb);
+    renderSection(); changed();
+    focusBlock(nb.id);
+  }, 'Add to this chapter'));
+}
+function focusBlock(id){ setTimeout(function(){ var e = document.querySelector('[data-bid="' + id + '"] textarea, [data-bid="' + id + '"] input'); if(e){ e.focus(); e.scrollIntoView({block:'center', behavior:'smooth'}); } }, 30); }
+function adder(onPick, label){
+  var bar = h('div', {class:'adder', role:'group', 'aria-label':label}, [h('span', {class:'lab', text:label})]);
+  Object.keys(FBE.BLOCKS).forEach(function(k){ bar.appendChild(h('button', {class:'chip', type:'button', text:'+ ' + FBE.BLOCKS[k], onclick:function(){ onPick(k); }})); });
+  return bar;
+}
+function blockEditor(ch, b, bi){
+  var n = ch.blocks.length;
+  var box = h('div', {class:'blk', 'data-bid':b.id});
+  var insert = h('select', {'aria-label':'Insert a block below', class:'btn btn-ghost btn-sm', style:'padding:5px 8px'});
+  insert.appendChild(h('option', {value:'', text:'+ Below'}));
+  Object.keys(FBE.BLOCKS).forEach(function(k){ insert.appendChild(h('option', {value:k, text:FBE.BLOCKS[k]})); });
+  insert.addEventListener('change', function(){
+    if(!insert.value) return;
+    var nb = NEW_BLOCK[insert.value](); nb.id = uid(); ch.blocks.splice(bi + 1, 0, nb);
+    renderSection(); changed(); focusBlock(nb.id);
+  });
+  var del = h('button', {type:'button', 'aria-label':'Delete this block', html:'&#10005;'});
+  del.addEventListener('click', function(){
+    var hasText = t(b.text) || t(b.src) || t(b.value) || t(b.caption) || (b.cards || []).some(function(c){ return t(c.f) || t(c.b); });
+    var go = function(){ ch.blocks.splice(bi, 1); renderSection(); changed(); toast('Block deleted'); };
+    if(!hasText) return go();
+    if(del.dataset.armed){ go(); return; }
+    del.dataset.armed = '1'; del.textContent = 'Delete?'; del.style.width = 'auto'; del.style.padding = '0 8px';
+    setTimeout(function(){ if(del.isConnected && del.dataset.armed){ delete del.dataset.armed; del.innerHTML = '&#10005;'; del.style.width = ''; del.style.padding = ''; } }, 3200);
+  });
+  box.appendChild(h('div', {class:'blk-top'}, [
+    h('span', {class:'blk-type', text:FBE.BLOCKS[b.type] || b.type}),
+    insert,
+    h('div', {class:'mini'}, [
+      h('button', {type:'button', 'aria-label':'Move block up', disabled:bi === 0, html:'&#8593;', onclick:function(){ move(ch.blocks, bi, -1); renderSection(); changed(); focusBlock(b.id); }}),
+      h('button', {type:'button', 'aria-label':'Move block down', disabled:bi === n - 1, html:'&#8595;', onclick:function(){ move(ch.blocks, bi, 1); renderSection(); changed(); focusBlock(b.id); }}),
+      h('button', {type:'button', 'aria-label':'Duplicate block', html:'&#10697;', onclick:function(){ var c = clone(b); c.id = uid(); ch.blocks.splice(bi + 1, 0, c); renderSection(); changed(); }}),
+      del
+    ])
+  ]));
+  var set = function(k){ return function(v){ b[k] = v; }; };
+  var id = b.id;
+  switch(b.type){
+    case 'heading': box.appendChild(field('Subheading', b.text, set('text'), {id:id + 't'})); break;
+    case 'paragraph': box.appendChild(field('Text', b.text, set('text'), {type:'textarea', big:true, rows:5, id:id + 't', hint:MARKS_HINT + '. Long text flows onto the next page by itself.'})); break;
+    case 'list':
+      box.appendChild(field('Items, one per line', b.text, set('text'), {type:'textarea', rows:4, id:id + 't'}));
+      box.appendChild(field('Style', b.style, function(v){ b.style = v; }, {type:'select', id:id + 's', options:[['bullet','Bullets'],['number','Numbered steps']]}));
+      break;
+    case 'quote':
+      box.appendChild(field('Quote', b.text, set('text'), {type:'textarea', rows:2, id:id + 't'}));
+      box.appendChild(field('Who said it', b.by, set('by'), {id:id + 'b'}));
+      break;
+    case 'callout':
+      box.appendChild(field('Style', b.tone, function(v){ b.tone = v; }, {type:'select', id:id + 'k', options:[['rights','Know your rights'],['info','Good to know'],['warn','Watch out']]}));
+      box.appendChild(field('Title', b.title, set('title'), {id:id + 'h'}));
+      box.appendChild(field('Text', b.text, set('text'), {type:'textarea', rows:3, id:id + 't', hint:MARKS_HINT}));
+      box.appendChild(field('Citation', b.cite, set('cite'), {id:id + 'c', placeholder:'For example: 34 CFR 300.613'}));
+      break;
+    case 'keynum':
+      box.appendChild(h('div', {class:'row'}, [field('Number', b.value, set('value'), {id:id + 'v', placeholder:'10'}), field('Unit', b.unit, set('unit'), {id:id + 'u', placeholder:'school days'})]));
+      box.appendChild(field('What it means', b.text, set('text'), {type:'textarea', rows:2, id:id + 't'}));
+      box.appendChild(field('Citation', b.cite, set('cite'), {id:id + 'c'}));
+      break;
+    case 'flip': box.appendChild(flipEditor(b)); break;
+    case 'image':
+      box.appendChild(imageField(b.src, function(r){ b.src = r.src; b.w = r.w; b.h = r.h; renderSection(); changed(); }, function(){ b.src = ''; delete b.w; delete b.h; renderSection(); changed(); }));
+      box.appendChild(h('div', {class:'row'}, [
+        field('Caption', b.caption, set('caption'), {id:id + 'c'}),
+        field('Width', b.width, function(v){ b.width = v; }, {type:'select', id:id + 'w', options:[['full','Full width'],['half','Narrow, centered']]})
+      ]));
+      box.appendChild(field('Description for screen readers', b.alt, set('alt'), {id:id + 'a', hint:'What the image shows, in a sentence'}));
+      break;
+    case 'button':
+      box.appendChild(h('div', {class:'row'}, [field('Button text', b.text, set('text'), {id:id + 't'}), field('Link', b.url, set('url'), {type:'url', id:id + 'u', placeholder:'https://'})]));
+      break;
+    case 'divider': box.appendChild(h('p', {class:'help', text:'A thin line between sections.'})); break;
+    case 'pagebreak': box.appendChild(h('p', {class:'help', text:'What follows starts on a new page.'})); break;
+  }
+  return box;
+}
+function flipEditor(b){
+  var wrap = h('div', {style:'display:flex;flex-direction:column;gap:10px'});
+  wrap.appendChild(h('div', {class:'row'}, [
+    field('Heading above the cards', b.title, function(v){ b.title = v; }, {id:b.id + 'h'}),
+    field('Front label', b.frontLabel, function(v){ b.frontLabel = v; }, {id:b.id + 'fl'}),
+    field('Back label', b.backLabel, function(v){ b.backLabel = v; }, {id:b.id + 'bl'})
+  ]));
+  var list = h('div', {class:'cards-list'});
+  b.cards.forEach(function(c, ci){
+    var rm = h('button', {class:'btn btn-ghost btn-sm', type:'button', text:'Remove'});
+    rm.addEventListener('click', function(){
+      var go = function(){ b.cards.splice(ci, 1); if(!b.cards.length) b.cards.push({f:'', b:'', cite:''}); renderSection(); changed(); };
+      if(t(c.f) || t(c.b)) confirmBtn(rm, 'Remove', go); else go();
+    });
+    list.appendChild(h('div', {class:'fc-ed'}, [
+      h('div', {class:'fc-ed-top'}, [h('span', {text:'Card ' + (ci + 1)}), h('div', {class:'mini'}, [
+        h('button', {type:'button', 'aria-label':'Move card up', disabled:ci === 0, html:'&#8593;', onclick:function(){ move(b.cards, ci, -1); renderSection(); changed(); }}),
+        h('button', {type:'button', 'aria-label':'Move card down', disabled:ci === b.cards.length - 1, html:'&#8595;', onclick:function(){ move(b.cards, ci, 1); renderSection(); changed(); }}),
+        rm
+      ])]),
+      field('Front', c.f, function(v){ c.f = v; }, {type:'textarea', rows:2, id:b.id + 'f' + ci}),
+      field('Back', c.b, function(v){ c.b = v; }, {type:'textarea', rows:2, id:b.id + 'b' + ci}),
+      field('Citation', c.cite, function(v){ c.cite = v; }, {id:b.id + 'c' + ci})
+    ]));
+  });
+  wrap.appendChild(list);
+  wrap.appendChild(h('button', {class:'btn btn-line btn-sm', type:'button', style:'align-self:flex-start', text:'+ Add another card', onclick:function(){ b.cards.push({f:'', b:'', cite:''}); renderSection(); changed(); var e = $('f-' + b.id + 'f' + (b.cards.length - 1)); if(e) e.focus(); }}));
+  wrap.appendChild(h('p', {class:'help', text:'Readers tap each card to flip it back and forth. In the PDF, each card shows its front and back together.'}));
+  return wrap;
+}
+
+/* ---------- live pages ---------- */
+var previewBusy = false;
+function previewSoon(){ clearTimeout(previewSoon._t); previewSoon._t = setTimeout(function(){ preview(false); }, 450); }
+function preview(first){
+  if(!cur) return;
+  var book = cur;
+  FBE.prepare(book).then(function(){
+    if(book !== cur) return;
+    pages = FBE.paginate(book);
+    renderPreviewPages();
+  });
+  if(first){ $('pv').innerHTML = '<p class="pv-note">Laying out pages…</p>'; }
+}
+function pagesFor(key){
+  if(!pages.length) return [];
+  if(key === 'cover') return [0];
+  if(key === 'back'){ var l = pages.length - 1; return pages[l].kind === 'back' ? [l] : []; }
+  if(key === 'design') return pages.map(function(_, i){ return i; }).slice(0, 6);
+  var ci = cur.chapters.indexOf(chapterById(key));
+  var out = [];
+  pages.forEach(function(p, i){ if(p.kind === 'content' && p.chapter === ci) out.push(i); });
+  return out;
+}
+function markPageCounts(){
+  document.querySelectorAll('[data-pages]').forEach(function(e){
+    var ps = pagesFor(e.dataset.pages);
+    e.textContent = ps.length ? (ps.length === 1 ? 'p' + (ps[0] + 1) : 'pp' + (ps[0] + 1) + '–' + (ps[ps.length - 1] + 1)) : '';
+  });
+}
+function renderPreviewPages(){
+  if(!cur) return;
+  var pv = $('pv'); pv.innerHTML = '';
+  var ids = pagesFor(section);
+  var label = section === 'design' ? 'First pages' : 'Pages in this section';
+  pv.appendChild(h('div', {class:'pv-head'}, [h('h2', {text:label}), h('span', {class:'pv-total', text:pages.length + (pages.length === 1 ? ' page' : ' pages')})]));
+  if(!ids.length){
+    pv.appendChild(h('p', {class:'pv-note', text:section === 'back' ? 'No back cover yet. Add a heading or message to include one.' : 'Nothing to show yet.'}));
+  } else {
+    var grid = h('div', {class:'pv-grid'});
+    ids.forEach(function(i){
+      var b = h('button', {class:'pv-pg', type:'button', 'aria-label':'Open page ' + (i + 1) + ' in the flipbook'}, [thumb(cur, pages[i].html, 130), h('span', {text:'Page ' + (i + 1)})]);
+      b.addEventListener('click', function(){ openReader(i); });
+      grid.appendChild(b);
+    });
+    pv.appendChild(grid);
+  }
+  pv.appendChild(h('button', {class:'btn btn-line', type:'button', text:'Open the flipbook', onclick:function(){ openReader(ids[0] || 0); }}));
+  markPageCounts();
+}
+
+/* ---------- reader ---------- */
+function openReader(start){
+  if(!cur) return;
+  var book = cur;
+  FBE.prepare(book).then(function(){
+    pages = FBE.paginate(book);
+    var ov = h('div', {class:'reader-ov', role:'dialog', 'aria-modal':'true', 'aria-label':'Flipbook preview'});
+    $('layer').appendChild(ov);
+    var prevFocus = document.activeElement;
+    var viewer = new FBE.Viewer(ov, book, pages, {
+      start:start || 0,
+      onClose:function(){ close(); },
+      actions:[{label:'Download PDF', run:function(btn, v){ pdf(book, btn, v); }}]
+    });
+    function close(){ viewer.destroy(); ov.remove(); document.removeEventListener('keydown', key); if(prevFocus && prevFocus.focus) prevFocus.focus(); }
+    function key(e){ if(e.key === 'Escape' && !ov.querySelector('.fbv-menu')) close(); }
+    document.addEventListener('keydown', key);
+    viewer.focus();
+  });
+}
+function pdf(book, btn, viewer){
+  if(btn) btn.disabled = true;
+  var say = function(m){ if(viewer) viewer.status(m); else if(btn) btn.textContent = m; };
+  say('Making PDF…');
+  return FBE.makePdf(book, function(i, n){ say('Making PDF: page ' + i + ' of ' + n); }).then(function(blob){
+    if(viewer) viewer.status('');
+    return saveFile(FBE.slug(book.title) + '.pdf', blob, 'application/pdf');
+  }).catch(function(e){ toast(e && e.message ? e.message : 'Could not make the PDF.'); if(viewer) viewer.status(''); })
+  .then(function(){ if(btn){ btn.disabled = false; if(!viewer) btn.textContent = 'Download PDF'; } });
+}
+
+/* ---------- publish ---------- */
+function bookFile(book){
+  var css = $('fbe-css').textContent, js = $('fbe-js').textContent;
+  var data = JSON.stringify(normalize(clone(book))).replace(/</g, '\\u003c');
+  var title = esc(t(book.title) || 'Flipbook');
+  var desc = esc(t(book.cover.subtitle) || 'A flipbook');
+  var th = FBE.themeOf(book);
+  return '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n' +
+    '<title>' + title + '</title>\n<meta name="description" content="' + desc + '">\n<meta property="og:title" content="' + title + '">\n<meta property="og:description" content="' + desc + '">\n<meta property="og:type" content="book">\n<meta name="theme-color" content="' + th.c1 + '">\n' +
+    '<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="stylesheet" href="' + FBE.fontHref([book.settings.fonts]) + '">\n' +
+    '<style>\nhtml,body{margin:0;height:100%;background:#1E242E}\n#app{height:100%}\n.fbv-load{color:#EEF1F5;font:600 15px system-ui,sans-serif;display:flex;height:100%;align-items:center;justify-content:center}\n' + css + '\n</style>\n</head>\n<body>\n<div id="app"><div class="fbv-load">Opening the flipbook…</div></div>\n' +
+    '<script type="application/json" id="book">' + data + '<\/script>\n' +
+    '<script>\n' + js + '\n<\/script>\n' +
+    '<script>\n(function(){\nvar book = JSON.parse(document.getElementById("book").textContent);\nvar app = document.getElementById("app");\nfunction start(){\n  var pages = FBE.paginate(book);\n  var m = /^#p(\\d+)$/.exec(location.hash);\n  var v = new FBE.Viewer(app, book, pages, {start:m ? Number(m[1]) - 1 : 0, onPage:function(i){ try{ history.replaceState(null, "", "#p" + (i + 1)); }catch(e){} }, actions:[{label:"Download PDF", run:function(btn, viewer){\n    btn.disabled = true; viewer.status("Making PDF…");\n    FBE.makePdf(book, function(i, n){ viewer.status("Making PDF: page " + i + " of " + n); }).then(function(blob){\n      var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = FBE.slug(book.title) + ".pdf"; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 4000);\n      viewer.status("PDF downloaded", 2500);\n    }).catch(function(e){ viewer.status(e.message || "Could not make the PDF", 4000); }).then(function(){ btn.disabled = false; });\n  }}]});\n  v.focus();\n}\nFBE.prepare(book).then(start, start);\n})();\n<\/script>\n</body>\n</html>\n';
+}
+function openPublish(){
+  if(!cur) return;
+  var book = cur, slug = FBE.slug(book.title);
+  var sz = FBE.sizeOf(book);
+  var urlIn = h('input', {type:'url', id:'pubUrl', placeholder:'https://yourwebsite.com/books/' + slug + '.html'});
+  urlIn.value = book.publish.url || '';
+  var code = h('pre', {id:'embedCode'});
+  function embed(){
+    var u = FBE.safeUrl(urlIn.value) || 'https://yourwebsite.com/books/' + slug + '.html';
+    var ratio = (2 * sz.w) + ' / ' + (sz.h + 120);
+    code.textContent = '<iframe src="' + u + '" title="' + (t(book.title) || 'Flipbook').replace(/"/g, '&quot;') + '" style="width:100%;max-width:1100px;aspect-ratio:' + ratio + ';border:0;border-radius:8px;display:block;margin:0 auto" allowfullscreen loading="lazy"></iframe>';
+  }
+  urlIn.addEventListener('input', function(){ book.publish.url = urlIn.value; embed(); saveSoon(); });
+  embed();
+  var pdfBtn = h('button', {class:'btn btn-line', type:'button', text:'Download PDF'});
+  pdfBtn.addEventListener('click', function(){ pdf(book, pdfBtn, null); });
+  var body = h('div', {class:'pub-grid'}, [
+    h('section', {class:'pub'}, [
+      h('h3', {text:'1. Flipbook file for a share link'}),
+      h('p', {text:'One file holds the whole page-turning book. Put it online and the address is your share link.'}),
+      h('div', {class:'acts'}, [h('button', {class:'btn btn-primary', type:'button', text:'Download flipbook (' + slug + '.html)', onclick:function(){ saveFile(slug + '.html', bookFile(book), 'text/html'); }})]),
+      h('ol', {}, [
+        h('li', {html:'<b>Quickest:</b> go to app.netlify.com/drop and drop the file. Netlify gives you a link right away.'}),
+        h('li', {html:'<b>On your Bolt site:</b> in the Code tab, drag the file into the <b>public</b> folder (make a <b>books</b> folder inside it if you like), then Publish. The link is your site address plus <b>/books/' + esc(slug) + '.html</b>.'})
+      ])
+    ]),
+    h('section', {class:'pub'}, [
+      h('h3', {text:'2. Embed it on your website'}),
+      h('label', {class:'f', for:'pubUrl'}, ['Where the flipbook file lives', h('span', {class:'hint', text:'Paste the share link from step 1.'})]),
+      urlIn,
+      code,
+      h('div', {class:'acts'}, [h('button', {class:'btn btn-line', type:'button', text:'Copy embed code', onclick:function(){ copy(code.textContent, code); }})]),
+      h('p', {text:'Paste this into an HTML or embed block. In Bolt, put it in the page’s code where the book should appear.'})
+    ]),
+    h('section', {class:'pub'}, [
+      h('h3', {text:'3. PDF to download or print'}),
+      h('p', {text:'Same pages at ' + sz.inW + ' × ' + sz.inH + ' inches, with links that still work. Flip cards show both sides.'}),
+      h('div', {class:'acts'}, [pdfBtn])
+    ]),
+    h('section', {class:'pub'}, [
+      h('h3', {text:'Backup'}),
+      h('p', {text:'Your books are kept in this browser. Download a backup file to keep a copy, move to another computer, or share an editable version with a teammate (they use Import).'}),
+      h('div', {class:'acts'}, [h('button', {class:'btn btn-ghost', type:'button', text:'Download backup file', onclick:backup}), h('button', {class:'btn btn-ghost', type:'button', text:'Back up every book', onclick:backupAll})])
+    ])
+  ]);
+  modal('Publish “' + (t(book.title) || 'Untitled book') + '”', body);
+}
+function backup(){ if(!cur) return; saveFile(FBE.slug(cur.title) + '-backup.json', JSON.stringify(cur, null, 1), 'application/json'); }
+function backupAll(){ saveFile('flipbook-studio-backup.json', JSON.stringify({books:books}, null, 1), 'application/json'); }
+
+/* ---------- wiring ---------- */
+$('home').addEventListener('click', function(){ if(cur){ store.put(cur); } renderLib(); });
+$('btnNew').addEventListener('click', openNew);
+$('btnImport').addEventListener('click', openImport);
+$('btnRead').addEventListener('click', function(){ openReader(pagesFor(section)[0] || 0); });
+$('btnPublish').addEventListener('click', openPublish);
+$('bookTitle').addEventListener('input', function(){ if(!cur) return; cur.title = $('bookTitle').value; var e = $('f-cvTitle'); if(e) e.value = cur.title; changed(); });
+window.addEventListener('beforeunload', function(){ if(cur) store.put(cur); });
+
+store.open().then(function(ok){
+  if(!ok){
+    var n = $('storageNote'); n.hidden = false;
+    n.textContent = 'This browser is not letting the studio save, so books last only until you close the page. Use Download backup file to keep your work.';
+  }
+  return store.all();
+}).then(function(list){
+  books = (list || []).map(normalize);
+  if(!books.length){
+    /* first visit: start with the guide template so the studio shows what it makes */
+    var g = normalize(FBT.TEMPLATES.guide.make());
+    books.push(g); store.put(g);
+  }
+  renderLib();
+});
+})();
+</script>
+</body>
+</html>
